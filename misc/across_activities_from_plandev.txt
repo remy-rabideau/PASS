@@ -1,0 +1,71 @@
+      {
+        "attributes": {
+          "arguments": {
+            "ra": 56,
+            "dec": 88,
+            "dataBin": 0,
+            "exposure": 60000000,
+            "targetName": "Mars",
+            "dataRateBps": 500000,
+            "description": "",
+            "tResolution": 0.001,
+            "energyMaxKev": 10,
+            "energyMinKev": 0.3
+          },
+          "directiveId": 1697,
+          "computedAttributes": {}
+        },
+        "activity_type_name": "TimeTarget"
+      },
+      {
+        "attributes": {
+          "arguments": {
+            "ra": 30,
+            "dec": 60,
+            "duration": 60000000,
+            "targetName": "UNKNOWN",
+            "description": "",
+            "pointingAngle": -19
+          },
+          "directiveId": 1696,
+          "computedAttributes": {}
+        },
+        "activity_type_name": "Slew"
+      },
+      {
+        "attributes": {
+          "arguments": {
+            "ra": 0,
+            "dec": 0,
+            "dataBin": 0,
+            "exposure": 30000000,
+            "targetName": "Mars",
+            "dataRateBps": 1000000,
+            "description": "",
+            "energyMaxKev": 10,
+            "energyMinKev": 0.3
+          },
+          "directiveId": 1695,
+          "computedAttributes": {}
+        },
+        "activity_type_name": "ImageTarget"
+      },
+      {
+        "attributes": {
+          "arguments": {
+            "ra": 45,
+            "dec": 75,
+            "dataBin": 0,
+            "exposure": 120000000,
+            "emResPower": 1000,
+            "targetName": "Phoenix cluster",
+            "dataRateBps": 2000000,
+            "description": "",
+            "energyMaxKev": 10,
+            "energyMinKev": 0.3
+          },
+          "directiveId": 1694,
+          "computedAttributes": {}
+        },
+        "activity_type_name": "ObserveSpectrum"
+      }
