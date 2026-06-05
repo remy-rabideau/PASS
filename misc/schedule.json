@@ -1,45 +1,116 @@
 {
    "telescope_id":"d8af2063-1a11-4941-aa06-2d63a9d9b918",
-   "name":"Simple Mars Image Plan",
+   "name":"Mars ACROSS Plan",
    "date_range":{
       "begin":"2024-01-02T00:00:00+00:00",
       "end":"2024-01-04T00:00:00+00:00"
    },
    "status":"planned",
-   "external_id":"10",
+   "external_id":"12",
    "fidelity":"low",
    "observations":[
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"ImageTarget",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"Mars",
          "pointing_position":{
-            "ra":45.0,
-            "dec":75.0
+            "ra":56.0,
+            "dec":88.0
          },
          "date_range":{
-            "begin":"2024-01-02T01:34:28.920000+00:00",
-            "end":"2024-01-02T01:34:59.920000+00:00"
+            "begin":"2024-01-02T01:31:19.650000+00:00",
+            "end":"2024-01-02T01:32:19.650000+00:00"
          },
-         "external_observation_id":"1213",
-         "type":"imaging",
+         "external_observation_id":"1697",
+         "type":"timing",
          "status":"planned",
-         "description":"ImageTarget",
+         "exposure_time":60000000,
+         "description":"",
          "bandpass":{
             "min":0.3,
             "max":10.0,
             "type":"ENERGY",
             "unit":"keV"
          },
-         "exposure_time":"None"
+         "t_resolution":0.001
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
+         "pointing_position":{
+            "ra":30.0,
+            "dec":60.0
+         },
+         "date_range":{
+            "begin":"2024-01-02T01:28:33.600000+00:00",
+            "end":"2024-01-02T01:29:33.600000+00:00"
+         },
+         "external_observation_id":"1696",
+         "type":"slew",
+         "status":"planned",
+         "pointing_angle":-19.0,
+         "description":"",
+         "bandpass":{
+            "type":"ENERGY",
+            "unit":"keV",
+            "min":"None",
+            "max":"None"
+         }
+      },
+      {
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"Mars",
+         "pointing_position":{
+            "ra":0.0,
+            "dec":0.0
+         },
+         "date_range":{
+            "begin":"2024-01-02T01:26:19.950000+00:00",
+            "end":"2024-01-02T01:26:49.950000+00:00"
+         },
+         "external_observation_id":"1695",
+         "type":"imaging",
+         "status":"planned",
+         "exposure_time":30000000,
+         "description":"",
+         "bandpass":{
+            "min":0.3,
+            "max":10.0,
+            "type":"ENERGY",
+            "unit":"keV"
+         }
+      },
+      {
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"Phoenix cluster",
+         "pointing_position":{
+            "ra":45.0,
+            "dec":75.0
+         },
+         "date_range":{
+            "begin":"2024-01-02T01:24:38.700000+00:00",
+            "end":"2024-01-02T01:26:38.700000+00:00"
+         },
+         "external_observation_id":"1694",
+         "type":"spectroscopy",
+         "status":"planned",
+         "exposure_time":120000000,
+         "description":"",
+         "bandpass":{
+            "min":0.3,
+            "max":10.0,
+            "type":"ENERGY",
+            "unit":"keV"
+         },
+         "em_res_power":1000.0
+      },
+      {
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T23:00:53.074816+00:00",
             "end":"2024-01-03T23:59:01.000816+00:00"
          },
-         "external_observation_id":"1212",
+         "external_observation_id":"1693",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -51,13 +122,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T21:08:44.128969+00:00",
             "end":"2024-01-03T22:25:47.871969+00:00"
          },
-         "external_observation_id":"1211",
+         "external_observation_id":"1692",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -69,13 +140,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T13:39:53.636329+00:00",
             "end":"2024-01-03T14:57:06.078329+00:00"
          },
-         "external_observation_id":"1210",
+         "external_observation_id":"1691",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -87,13 +158,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T15:32:07.259098+00:00",
             "end":"2024-01-03T16:49:19.353098+00:00"
          },
-         "external_observation_id":"1209",
+         "external_observation_id":"1690",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -105,13 +176,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T17:24:20.984561+00:00",
             "end":"2024-01-03T18:41:30.308561+00:00"
          },
-         "external_observation_id":"1208",
+         "external_observation_id":"1689",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -123,13 +194,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T09:55:38.823093+00:00",
             "end":"2024-01-03T11:12:41.572093+00:00"
          },
-         "external_observation_id":"1207",
+         "external_observation_id":"1688",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -141,13 +212,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T11:47:44.103418+00:00",
             "end":"2024-01-03T13:04:52.099418+00:00"
          },
-         "external_observation_id":"1206",
+         "external_observation_id":"1687",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
@@ -159,13 +230,13 @@
          }
       },
       {
-         "instrument_id":"34e16e2a-c355-4c5d-be90-cc207e62047c",
-         "object_name":"Downlink",
+         "instrument_id":"6f8a093c-33fe-4b82-b757-880ff90f34d4",
+         "object_name":"UNKNOWN",
          "date_range":{
             "begin":"2024-01-03T19:16:33.468629+00:00",
             "end":"2024-01-03T20:33:39.229629+00:00"
          },
-         "external_observation_id":"1205",
+         "external_observation_id":"1686",
          "type":"timing",
          "status":"planned",
          "description":"Downlink",
