@@ -88,14 +88,22 @@ def _base_fields(activity: dict) -> dict:
         ),
         status=ObservationStatus.PLANNED,
         type=ObservationType.TIMING,            # safest default; mappers override
-        object_name=activity["activity_type_name"],
+        object_name="UNKNOWN",
         description=activity["activity_type_name"],
         bandpass=null_bandpass(),               # mappers override for real EM obs
 
     )
 
+def across_specific_fields(data: dict) -> dict:
+ 
+    return dict(
+        pointing_position=Coordinate(ra=data["ra"], dec=data["dec"]),
+        object_name=data["targetName"],
+        description=data["description"]
+    )
+
 """
-Optional fields:
+Optional ACROSS fields:
     pointing_position
     pointing_angle
     exposure_time
@@ -135,27 +143,71 @@ def _example_activity_type(activity: dict) -> dict:
 def _imaging(activity: dict) -> dict:
 
     a = activity["attributes"]
-    args, computed = a.get("arguments", {}), a.get("computedAttributes", {})
+    data = a["arguments"]
+    fields = across_specific_fields(data)
  
-    # pointing may be an input arg OR a model-computed output — try both
-    ra = arg_num(args, "ra", computed.get("ra"))
-    dec = arg_num(args, "dec", computed.get("dec"))
- 
-    new_fields = dict(
+    fields.update(
         type=ObservationType.IMAGING,
-        object_name=arg(args, "target", activity["activity_type_name"]),
-        exposure_time=arg(args, "exposureTime"),
-        bandpass=Bandpass(EnergyBandpass(unit=EnergyUnit.KEV, min=0.3, max=10.0)),
+        exposure_time=data["exposure"],
+        bandpass=Bandpass(EnergyBandpass(
+            unit=EnergyUnit.KEV,
+            min=data["energyMinKev"],
+            max=data["energyMaxKev"]))
     )
-    if ra is not None and dec is not None:
-        new_fields["pointing_position"] = Coordinate(ra=ra, dec=dec)
-        
-    return new_fields
 
-@maps("Slew", "AttitudeManeuver")
+    return fields
+
+@maps("TimeTarget")
+def _timing(activity: dict) -> dict:
+
+    a = activity["attributes"]
+    data = a["arguments"]
+    fields = across_specific_fields(data)
+ 
+    fields.update(
+        type=ObservationType.TIMING,
+        exposure_time=data["exposure"],
+        bandpass=Bandpass(EnergyBandpass(
+            unit=EnergyUnit.KEV,
+            min=data["energyMinKev"],
+            max=data["energyMaxKev"])),
+        t_resolution=data["tResolution"]  # specific to timing
+    )
+
+    return fields
+
+@maps("ObserveSpectrum")
+def _observespectrum(activity: dict) -> dict:
+
+    a = activity["attributes"]
+    data = a["arguments"]
+    fields = across_specific_fields(data)
+ 
+    fields.update(
+        type=ObservationType.SPECTROSCOPY,
+        exposure_time=data["exposure"],
+        bandpass=Bandpass(EnergyBandpass(
+            unit=EnergyUnit.KEV,
+            min=data["energyMinKev"],
+            max=data["energyMaxKev"])),
+        em_res_power=data["emResPower"]  # specific to spectroscopy
+    )
+
+    return fields
+
+@maps("Slew")
 def _slew(activity: dict) -> dict:
-    # A slew collects no light: keep the null bandpass, just fix the type.
-    return dict(type=ObservationType.SLEW)
+
+    a = activity["attributes"]
+    data = a["arguments"]
+    fields = across_specific_fields(data)
+ 
+    fields.update(
+        type=ObservationType.SLEW,
+        pointing_angle=data["pointingAngle"]
+    )
+
+    return fields
 
 ## Add activity types here
 
