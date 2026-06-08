@@ -32,29 +32,6 @@ INSTRUMENT_CONFIGS = {
 # ---------------------------------------------------------------------------
 
 
-def arg(arguments: dict, key: str, default=None):
-    """
-    Read one argument. PlanDev sometimes wraps a value as
-    {"value": ..., "present": bool} and sometimes stores it bare,
-    so normalize both forms.
-    """
-
-    val = arguments.get(key, default)
-    if isinstance(val, dict) and "present" in val:
-        return val["value"] if val.get("present") else default
-
-    return val
-
-
-def arg_num(arguments: dict, key: str, default=None) -> float | int | None:
-
-    val = arg(arguments, key, default)
-    if isinstance(val, (int, float)):
-        return val
-
-    return default
-
-
 def null_bandpass() -> Bandpass:
     """Placeholder for activities that collect no EM radiation (slews, ops)."""
 
@@ -118,7 +95,7 @@ def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str) 
     bandpassMax = instr["max"]
     tRes = instr["t_res"]
     emRes = instr["em_res"]
-    bandpass=null_bandpass()
+    bandpass = null_bandpass()
     
     match bandpassType:
         case "ENERGY":
@@ -129,7 +106,6 @@ def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str) 
             bandpass = Bandpass(WavelengthBandpass(unit=getattr(WavelengthUnit, bandpassUnit.upper()), min=bandpassMin, max=bandpassMax))
         case _:
             bandpass = null_bandpass()
-
 
     return dict(
         pointing_position=Coordinate(ra=ra, dec=dec),
