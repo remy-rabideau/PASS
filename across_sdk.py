@@ -12,7 +12,7 @@ from across.sdk.v1.models.energy_bandpass import EnergyBandpass
 from across.sdk.v1.models.energy_unit import EnergyUnit
 from across.sdk.v1.models.coordinate import Coordinate
 
-from config import *
+from hasura_client import get_resource_at_time
 
 TELESCOPE_UUID = ""
 INSTRUMENT_UUID = ""
@@ -33,17 +33,19 @@ def arg(arguments: dict, key: str, default=None):
     val = arguments.get(key, default)
     if isinstance(val, dict) and "present" in val:
         return val["value"] if val.get("present") else default
-    
+
     return val
+
 
 def arg_num(arguments: dict, key: str, default=None) -> float | int | None:
 
     val = arg(arguments, key, default)
     if isinstance(val, (int, float)):
         return val
-    
+
     return default
- 
+
+
 def null_bandpass() -> Bandpass:
     """Placeholder for activities that collect no EM radiation (slews, ops)."""
 
@@ -57,10 +59,11 @@ def null_bandpass() -> Bandpass:
 
 # activity_type_name -> function(activity) -> dict of ObservationCreate kwargs
 OBSERVATION_MAPPERS = {}
- 
+
 # Activity types seen at runtime with no registered mapper. Inspect this after
 # a run to discover what a new model contains.
 UNMAPPED_TYPES: set[str] = set()
+
 
 def maps(*activity_type_names: str):
     """Decorator to register a mapper for one or more activity type names."""
@@ -69,17 +72,18 @@ def maps(*activity_type_names: str):
         for name in activity_type_names:
             OBSERVATION_MAPPERS[name] = fn
         return fn
+
     return decorator
- 
+
+
 def _base_fields(activity: dict) -> dict:
     """Universal fields every observation gets, regardless of type.
- 
+
     These are the safe defaults for an unmapped/operational activity.
     A mapper overrides whichever of these it can do better.
     """
 
     return dict(
-
         instrument_id=INSTRUMENT_UUID,
         external_observation_id=str(activity["id"]),
         date_range=DateRange(
@@ -87,20 +91,25 @@ def _base_fields(activity: dict) -> dict:
             end=datetime.fromisoformat(activity["end_time"]),
         ),
         status=ObservationStatus.PLANNED,
-        type=ObservationType.TIMING,            # safest default; mappers override
+        type=ObservationType.TIMING,  # safest default; mappers override
         object_name="UNKNOWN",
         description=activity["activity_type_name"],
-        bandpass=null_bandpass(),               # mappers override for real EM obs
-
+        bandpass=null_bandpass(),  # mappers override for real EM obs
     )
 
-def across_specific_fields(data: dict) -> dict:
- 
+
+def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str) -> dict:
+
+    ra = get_resource_at_time(simulation_dataset_id, "telescope.pointingRa", offset)
+    dec = get_resource_at_time(simulation_dataset_id, "telescope.pointingDec", offset)
+
     return dict(
-        pointing_position=Coordinate(ra=data["ra"], dec=data["dec"]),
+        pointing_position=Coordinate(ra=ra, dec=dec),
         object_name=data["targetName"],
-        description=data["description"]
+        description=data["description"],
+        exposure_time=data["exposure"],
     )
+
 
 """
 Optional ACROSS fields:
@@ -125,10 +134,13 @@ Optional ACROSS fields:
     footprint
 """
 
-@maps("ExampleActivityType")   # PlanDev plan activity name
-def _example_activity_type(activity: dict) -> dict:
 
-    activity_attributes = activity["attributes"]   # attributes object is activity-specific
+@maps("ExampleActivityType")  # PlanDev plan activity name
+def _example_activity_type(activity: dict, simulation_dataset_id: int) -> dict:
+
+    # activity_attributes = activity[
+    #     "attributes"
+    # ]  # attributes object is activity-specific
 
     new_fields = dict(
         # Fields to be added or overwritten. For example:
@@ -139,75 +151,68 @@ def _example_activity_type(activity: dict) -> dict:
 
     return new_fields
 
-@maps("ImageTarget")
-def _imaging(activity: dict) -> dict:
 
-    a = activity["attributes"]
-    data = a["arguments"]
-    fields = across_specific_fields(data)
- 
+@maps("ImageTarget")
+def _imaging(activity: dict, simulation_dataset_id: int) -> dict:
+
+    data = activity["attributes"]["arguments"]
+    fields = across_specific_fields(
+        data, simulation_dataset_id, activity["start_offset"]
+    )
+
     fields.update(
         type=ObservationType.IMAGING,
-        exposure_time=data["exposure"],
-        bandpass=Bandpass(EnergyBandpass(
-            unit=EnergyUnit.KEV,
-            min=data["energyMinKev"],
-            max=data["energyMaxKev"]))
     )
 
     return fields
+
 
 @maps("TimeTarget")
-def _timing(activity: dict) -> dict:
+def _timing(activity: dict, simulation_dataset_id: int) -> dict:
 
-    a = activity["attributes"]
-    data = a["arguments"]
-    fields = across_specific_fields(data)
- 
+    data = activity["attributes"]["arguments"]
+    fields = across_specific_fields(
+        data, simulation_dataset_id, activity["start_offset"]
+    )
+
     fields.update(
         type=ObservationType.TIMING,
-        exposure_time=data["exposure"],
-        bandpass=Bandpass(EnergyBandpass(
-            unit=EnergyUnit.KEV,
-            min=data["energyMinKev"],
-            max=data["energyMaxKev"])),
-        t_resolution=data["tResolution"]  # specific to timing
     )
 
     return fields
+
 
 @maps("ObserveSpectrum")
-def _observespectrum(activity: dict) -> dict:
+def _observespectrum(activity: dict, simulation_dataset_id: int) -> dict:
 
-    a = activity["attributes"]
-    data = a["arguments"]
-    fields = across_specific_fields(data)
- 
+    data = activity["attributes"]["arguments"]
+    fields = across_specific_fields(
+        data, simulation_dataset_id, activity["start_offset"]
+    )
+
     fields.update(
         type=ObservationType.SPECTROSCOPY,
-        exposure_time=data["exposure"],
-        bandpass=Bandpass(EnergyBandpass(
-            unit=EnergyUnit.KEV,
-            min=data["energyMinKev"],
-            max=data["energyMaxKev"])),
-        em_res_power=data["emResPower"]  # specific to spectroscopy
     )
 
     return fields
+
 
 @maps("Slew")
-def _slew(activity: dict) -> dict:
+def _slew(activity: dict, simulation_dataset_id: int) -> dict:
 
-    a = activity["attributes"]
-    data = a["arguments"]
-    fields = across_specific_fields(data)
- 
-    fields.update(
+    data = activity["attributes"]["arguments"]
+
+    ra = data["ra"]
+    dec = data["dec"]
+
+    fields = dict(
         type=ObservationType.SLEW,
-        pointing_angle=data["pointingAngle"]
+        pointing_position=Coordinate(ra=ra, dec=dec),
+        pointing_angle=data["pointingAngle"],
     )
 
     return fields
+
 
 ## Add activity types here
 
@@ -217,33 +222,34 @@ def _slew(activity: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def create_observation(activity: dict) -> ObservationCreate:
+def create_observation(activity: dict, simulation_dataset_id: int) -> ObservationCreate:
 
     fields = _base_fields(activity)
     mapper = OBSERVATION_MAPPERS.get(activity["activity_type_name"])
 
     if mapper is not None:
-        fields.update(mapper(activity))
+        fields.update(mapper(activity, simulation_dataset_id))
     else:
         UNMAPPED_TYPES.add(activity["activity_type_name"])
 
     return ObservationCreate(**fields)
 
-def build_observations(activities: list) -> list:
-    return [create_observation(a) for a in activities]
+
+def build_observations(activities: list, simulation_dataset_id: int) -> list:
+    return [create_observation(a, simulation_dataset_id) for a in activities]
+
 
 def create_schedule(sim: dict, plan_id: int) -> ScheduleCreate:
 
     activities = sim["simulation_datasets"][0]["simulated_activities"]
+    simulation_dataset_id = sim["simulation_datasets"][0]["id"]
 
     if ALLOWED_ACTIVITY_TYPES:
         activities = [
-            a for a in activities
-            if a["activity_type_name"] in ALLOWED_ACTIVITY_TYPES
+            a for a in activities if a["activity_type_name"] in ALLOWED_ACTIVITY_TYPES
         ]
- 
-    schedule = ScheduleCreate(
 
+    schedule = ScheduleCreate(
         telescope_id=TELESCOPE_UUID,
         name=sim["plan"]["name"],
         date_range=DateRange(
@@ -253,11 +259,13 @@ def create_schedule(sim: dict, plan_id: int) -> ScheduleCreate:
         status=ScheduleStatus.PLANNED,
         fidelity=ScheduleFidelity.LOW,
         external_id=str(plan_id),
-        observations=build_observations(activities),
-
+        observations=build_observations(activities, simulation_dataset_id),
     )
- 
+
     if UNMAPPED_TYPES:
-        print("No mapper for these activity types (used placeholders):", sorted(UNMAPPED_TYPES))
+        print(
+            "No mapper for these activity types (used placeholders):",
+            sorted(UNMAPPED_TYPES),
+        )
 
     return schedule
