@@ -140,7 +140,7 @@ class ScheduleUI:
 
         self._refresh_send_state()
         if self.instruments:
-            self._set_status(f"Telescope set. Select an instrument.")
+            self._set_status("Telescope set. Select an instrument.")
         else:
             self._set_status("This telescope has no instruments.", error=True)
 
