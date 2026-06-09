@@ -39,9 +39,13 @@ This tool is essential for multi-mission observatory environments where observat
 - **across_sdk.py** – Observation mapping layer that converts PlanDev activity data into ACROSS-compatible observation objects
   - Handles multiple observation types (Imaging, Timing, Spectroscopy, Slew)
   - Provides a pluggable mapper registry for adding new activity types
-  - Normalizes argument formats from PlanDev's varied structure
+  - Dynamically fetches instrument configurations (bandpass, resolution) from Hasura resources
+  - Queries telescope pointing resources at precise observation start times
 - **across_data.py** – Data fetching from PlanDev's REST API for telescopes, instruments, plans, and activity metadata
-- **hasura_client.py** – GraphQL client for fetching detailed simulation datasets including simulated activities
+- **hasura_client.py** – GraphQL client for fetching detailed simulation datasets including simulated activities and resource values at specific time offsets
+  - `get_resource_at_time()` – Queries telescope pointing (RA/Dec) at observation start times
+  - `get_constant_resources()` – Fetches instrument configuration parameters dynamically
+  - `offset_to_interval()` – Converts PlanDev offset strings to GraphQL interval format
 - **config.py** – Environment configuration management for API credentials and endpoints
 
 ## Installation
@@ -125,27 +129,28 @@ Add support for new PlanDev activity types by registering a mapper in `across_sd
 
 ```python
 @maps("MyNewActivityType")
-def _my_new_activity_type(activity: dict) -> dict:
+def _my_new_activity_type(activity: dict, simulation_dataset_id: int) -> dict:
     """Convert PlanDev activity to ACROSS observation fields."""
-    a = activity["attributes"]
-    data = a["arguments"]
+    data = activity["attributes"]["arguments"]
     
-    return dict(
+    # Get telescope pointing and instrument config at observation start time
+    fields = across_specific_fields(data, simulation_dataset_id, activity["start_offset"])
+    
+    fields.update(
         type=ObservationType.IMAGING,
-        exposure_time=data["exposure"],
         # ... additional ACROSS fields
     )
+    
+    return fields
 ```
 
-### Robust Argument Parsing
+### Dynamic Resource Queries
 
-PlanDev uses inconsistent argument formats (bare values vs. wrapped objects). PASS provides normalization helpers:
+PASS queries Hasura resources to fetch real-time telescope pointing and instrument configurations:
 
-```python
-# Handles both: {"key": value} and {"key": {"value": value, "present": true}}
-val = arg(arguments, "some_key", default=None)
-num = arg_num(arguments, "exposure", default=0.0)
-```
+- **Telescope Pointing** – RA/Dec coordinates are queried at each observation's start time (with 1 microsecond offset to ensure slew completion)
+- **Instrument Configuration** – Bandpass parameters (type, unit, min, max), time resolution, and EM resolution power are fetched from simulation resources instead of hardcoded values
+- **Offset Conversion** – PlanDev offset strings (e.g., "1 day 06:10:15.963036") are converted to GraphQL interval format for precise resource queries
 
 ### Activity Type Discovery
 
@@ -175,6 +180,10 @@ No mapper for these activity types (used placeholders): ["NewActivityType", "Unk
 PlanDev Activity
     ↓
 _base_fields() → safe defaults (ObservationStatus.PLANNED, ObservationType.TIMING, etc.)
+    ↓
+across_specific_fields() → queries Hasura for:
+    - Telescope pointing (RA/Dec) at observation start time
+    - Instrument configuration (bandpass type/unit/range, time resolution, EM resolution)
     ↓
 Activity-type mapper (e.g., _imaging(), _timing()) → enriched fields
     ↓
@@ -218,13 +227,18 @@ ACROSS_CLIENT_SECRET=your-client-secret
 2. Create a mapper function in `across_sdk.py`:
    ```python
    @maps("MyActivityType")
-   def _my_activity(activity: dict) -> dict:
+   def _my_activity(activity: dict, simulation_dataset_id: int) -> dict:
        data = activity["attributes"]["arguments"]
-       return dict(
+       
+       # Get dynamic telescope pointing and instrument config
+       fields = across_specific_fields(data, simulation_dataset_id, activity["start_offset"])
+       
+       fields.update(
            type=ObservationType.IMAGING,
-           exposure_time=arg_num(data, "exposure", 0),
            # ... more fields
        )
+       
+       return fields
    ```
 3. Test by running PASS and selecting a plan containing the activity type
 4. Verify the observation appears correctly in ACROSS
