@@ -18,8 +18,10 @@ from across.sdk.v1.models.coordinate import Coordinate
 
 from hasura_client import get_resource_at_time, get_constant_resources
 
+# values set by schedule_ui
 TELESCOPE_UUID = ""
 INSTRUMENT_UUID = ""
+INSTRUMENT_NAME = ""
 ALLOWED_ACTIVITY_TYPES = []
 
 
@@ -246,6 +248,10 @@ def _slew(activity: dict, simulation_dataset_id: int) -> dict:
 
 
 def create_observation(activity: dict, simulation_dataset_id: int) -> ObservationCreate:
+
+    print(activity)
+    if INSTRUMENT_NAME != activity["attributes"]["arguments"]["instrumentName"]:
+        raise ValueError(f"Activity {activity['activity_type_name']} is not for {INSTRUMENT_NAME}")
 
     fields = _base_fields(activity)
     mapper = OBSERVATION_MAPPERS.get(activity["activity_type_name"])

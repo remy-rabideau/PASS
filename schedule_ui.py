@@ -151,6 +151,7 @@ class ScheduleUI:
             return
 
         across_sdk.INSTRUMENT_UUID = instrument["id"]
+        across_sdk.INSTRUMENT_NAME = instrument["name"]
         self._refresh_send_state()
 
         # With telescope + instrument chosen, load the plan list.
