@@ -16,16 +16,12 @@ from across.sdk.v1.models.frequency_unit import FrequencyUnit
 from across.sdk.v1.models.wavelength_unit import WavelengthUnit
 from across.sdk.v1.models.coordinate import Coordinate
 
-from hasura_client import get_resource_at_time
+from hasura_client import get_resource_at_time, get_constant_resources
 
 TELESCOPE_UUID = ""
 INSTRUMENT_UUID = ""
 ALLOWED_ACTIVITY_TYPES = []
-INSTRUMENT_CONFIGS = {
-    "XRayImager":     {"type": "ENERGY",     "unit": "keV", "min": 0.3, "max": 10.0,   "t_res": 0.073, "em_res": None},
-    "RadioReceiver":  {"type": "FREQUENCY",  "unit": "GHz", "min": 1.0, "max": 10.0,   "t_res": 1e-6,  "em_res": None},
-    "OpticalCamera":  {"type": "WAVELENGTH", "unit": "nm",  "min": 400, "max": 2500,   "t_res": 0.1,   "em_res": None},
-}
+
 
 # ---------------------------------------------------------------------------
 # -- Helpers
@@ -83,29 +79,46 @@ def _base_fields(activity: dict) -> dict:
         bandpass=null_bandpass(),  # mappers override for real EM obs
     )
 
+def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str):
 
-def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str) -> dict:
-
+    instr_name = data["instrumentName"]
     ra = get_resource_at_time(simulation_dataset_id, "telescope.pointingRa", offset)
     dec = get_resource_at_time(simulation_dataset_id, "telescope.pointingDec", offset)
-    instr = INSTRUMENT_CONFIGS[data["instrumentName"]]
-    bandpassType = instr["type"]
-    bandpassUnit = instr["unit"]
-    bandpassMin = instr["min"]
-    bandpassMax = instr["max"]
-    tRes = instr["t_res"]
-    emRes = instr["em_res"]
+    const_res = get_constant_resources(simulation_dataset_id, "instrument." + instr_name)
+
+    bandpassType = None
+    bandpassMin = None
+    bandpassMax = None
+    tRes = None
+    emRes = None
+
+    for res in const_res:
+        name = res["name"]
+        value = res["dynamics"]
+        
+        if "bandpassType" in name:
+            bandpassType = value
+        elif "bandMin" in name:
+            bandpassMin = value
+        elif "bandMax" in name:
+            bandpassMax = value
+        elif "tResolution" in name:
+            tRes = value
+        elif "emResPower" in name:
+            emRes = value
+
     bandpass = null_bandpass()
     
-    match bandpassType:
-        case "ENERGY":
-            bandpass = Bandpass(EnergyBandpass(unit=getattr(EnergyUnit, bandpassUnit.upper()), min=bandpassMin, max=bandpassMax))
-        case "FREQUENCY":
-            bandpass = Bandpass(FrequencyBandpass(unit=getattr(FrequencyUnit, bandpassUnit.upper()), min=bandpassMin, max=bandpassMax))
-        case "WAVELENGTH":
-            bandpass = Bandpass(WavelengthBandpass(unit=getattr(WavelengthUnit, bandpassUnit.upper()), min=bandpassMin, max=bandpassMax))
-        case _:
-            bandpass = null_bandpass()
+    if bandpassType:
+        match bandpassType:
+            case "ENERGY":
+                bandpass = Bandpass(EnergyBandpass(unit=EnergyUnit.KEV, min=bandpassMin, max=bandpassMax))
+            case "FREQUENCY":
+                bandpass = Bandpass(FrequencyBandpass(unit=FrequencyUnit.GHZ, min=bandpassMin, max=bandpassMax))
+            case "WAVELENGTH":
+                bandpass = Bandpass(WavelengthBandpass(unit=WavelengthUnit.NM, min=bandpassMin, max=bandpassMax))
+            case _:
+                bandpass = null_bandpass()
 
     return dict(
         pointing_position=Coordinate(ra=ra, dec=dec),

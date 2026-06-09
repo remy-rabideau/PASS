@@ -64,7 +64,6 @@ query GetResourceAtOffset($datasetId: Int!, $startOffset: interval!, $resource: 
 }
 """
 
-
 def get_resource_at_time(simulation_dataset_id: int, resource: str, offset: str):
 
     vars = {
@@ -73,9 +72,27 @@ def get_resource_at_time(simulation_dataset_id: int, resource: str, offset: str)
         "resource": resource,
     }
 
-    return query(RESOURCE_QUERY, vars)["data"]["getResourcesAtStartOffset"][0][
-        "dynamics"
-    ]
+    return query(RESOURCE_QUERY, vars)["data"]["getResourcesAtStartOffset"][0]["dynamics"]
+
+
+RESOURCES_QUERY = """
+query GetResourcesAtOffset($datasetId: Int!, $startOffset: interval!, $regex: String!) {
+  getResourcesAtStartOffset(args: {_dataset_id: $datasetId, _start_offset: $startOffset}, where: {name: {_regex: $regex}}) {
+    name
+    dynamics
+  }
+}
+"""
+
+def get_constant_resources(simulation_dataset_id: int, resource_regex: str):
+
+    vars = {
+        "datasetId": simulation_dataset_id,
+        "startOffset": offset_to_interval("0:0:0"),
+        "regex": resource_regex,
+    }
+
+    return query(RESOURCES_QUERY, vars)["data"]["getResourcesAtStartOffset"]
 
 
 def offset_to_interval(offset: str) -> str:
