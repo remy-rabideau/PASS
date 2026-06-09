@@ -99,6 +99,9 @@ def offset_to_interval(offset: str) -> str:
     seconds = float(time_components[2])
 
     total_seconds += hours * 3600 + minutes * 60 + seconds
+    
+    # Add 1 microsecond to ensure slew has fully settled
+    total_seconds += 0.000001
 
     h = int(total_seconds // 3600)
     m = int((total_seconds % 3600) // 60)
