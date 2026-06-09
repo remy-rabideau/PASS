@@ -87,6 +87,7 @@ def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str):
     const_res = get_constant_resources(simulation_dataset_id, "instrument." + instr_name)
 
     bandpassType = None
+    bandpassUnit = None
     bandpassMin = None
     bandpassMax = None
     tRes = None
@@ -98,6 +99,8 @@ def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str):
         
         if "bandpassType" in name:
             bandpassType = value
+        elif "bandpassUnit" in name:
+            bandpassUnit = value
         elif "bandMin" in name:
             bandpassMin = value
         elif "bandMax" in name:
@@ -112,11 +115,11 @@ def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str):
     if bandpassType:
         match bandpassType:
             case "ENERGY":
-                bandpass = Bandpass(EnergyBandpass(unit=EnergyUnit.KEV, min=bandpassMin, max=bandpassMax))
+                bandpass = Bandpass(EnergyBandpass(unit=EnergyUnit(bandpassUnit), min=bandpassMin, max=bandpassMax))
             case "FREQUENCY":
-                bandpass = Bandpass(FrequencyBandpass(unit=FrequencyUnit.GHZ, min=bandpassMin, max=bandpassMax))
+                bandpass = Bandpass(FrequencyBandpass(unit=FrequencyUnit(bandpassUnit), min=bandpassMin, max=bandpassMax))
             case "WAVELENGTH":
-                bandpass = Bandpass(WavelengthBandpass(unit=WavelengthUnit.NM, min=bandpassMin, max=bandpassMax))
+                bandpass = Bandpass(WavelengthBandpass(unit=WavelengthUnit(bandpassUnit), min=bandpassMin, max=bandpassMax))
             case _:
                 bandpass = null_bandpass()
 
