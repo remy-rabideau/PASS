@@ -17,11 +17,10 @@ from across.sdk.v1.models.wavelength_unit import WavelengthUnit
 from across.sdk.v1.models.coordinate import Coordinate
 
 from hasura_client import get_resource_at_time, get_constant_resources
+from across_data import short_name_to_uuid
 
 # values set by schedule_ui
 TELESCOPE_UUID = ""
-INSTRUMENT_UUID = ""
-INSTRUMENT_NAME = ""
 ALLOWED_ACTIVITY_TYPES = []
 
 
@@ -68,7 +67,6 @@ def _base_fields(activity: dict) -> dict:
     """
 
     return dict(
-        instrument_id=INSTRUMENT_UUID,
         external_observation_id=str(activity["id"]),
         date_range=DateRange(
             begin=datetime.fromisoformat(activity["start_time"]),
@@ -83,10 +81,11 @@ def _base_fields(activity: dict) -> dict:
 
 def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str):
 
-    instr_name = data["instrumentName"]
+    instrument_short_name = data["instrument"]
+    instrument_uuid = short_name_to_uuid(instrument_short_name)
     ra = get_resource_at_time(simulation_dataset_id, "telescope.pointingRa", offset)
     dec = get_resource_at_time(simulation_dataset_id, "telescope.pointingDec", offset)
-    const_res = get_constant_resources(simulation_dataset_id, "instrument." + instr_name)
+    const_res = get_constant_resources(simulation_dataset_id, "instrument." + instrument_short_name)
 
     bandpassType = None
     bandpassUnit = None
@@ -126,6 +125,7 @@ def across_specific_fields(data: dict, simulation_dataset_id: int, offset: str):
                 bandpass = null_bandpass()
 
     return dict(
+        instrument_id=instrument_uuid,
         pointing_position=Coordinate(ra=ra, dec=dec),
         object_name=data["targetName"],
         description=data["description"],
@@ -227,10 +227,14 @@ def _slew(activity: dict, simulation_dataset_id: int) -> dict:
 
     data = activity["attributes"]["arguments"]
 
+    # TODO decide which instrument UUID to use in slew "observation"
+    instrument_id = ""
+
     ra = data["ra"]
     dec = data["dec"]
 
     fields = dict(
+        instrument_id=instrument_id,
         type=ObservationType.SLEW,
         pointing_position=Coordinate(ra=ra, dec=dec),
         pointing_angle=data["pointingAngle"],
@@ -248,11 +252,7 @@ def _slew(activity: dict, simulation_dataset_id: int) -> dict:
 
 
 def create_observation(activity: dict, simulation_dataset_id: int) -> ObservationCreate:
-
-    print(activity)
-    if INSTRUMENT_NAME != activity["attributes"]["arguments"]["instrumentName"]:
-        raise ValueError(f"Activity {activity['activity_type_name']} is not for {INSTRUMENT_NAME}")
-
+    
     fields = _base_fields(activity)
     mapper = OBSERVATION_MAPPERS.get(activity["activity_type_name"])
 

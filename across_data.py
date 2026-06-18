@@ -12,24 +12,21 @@ import requests
 from across.sdk.v1.configuration import Configuration
 from across.sdk.v1.api_client_wrapper import ApiClientWrapper
 from across.sdk.v1.api.telescope_api import TelescopeApi
+from across.sdk.v1.api.instrument_api import InstrumentApi
 
 from config import HASURA_URL, HASURA_ADMIN_SECRET
 
 
 # ---------------------------------------------------------------------------
-# ACROSS: telescopes + instruments
+# ACROSS: telescopes
 # ---------------------------------------------------------------------------
 
 def get_telescopes() -> list[dict]:
     """
-    Return telescopes with their instruments, shaped for the UI:
+    Return telescopes shaped for the UI:
 
         [
-          {
-            "name": "MyTelescope",
-            "id": "uuid-...",
-            "instruments": [{"name": "RadarA", "id": "uuid-..."}, ...],
-          },
+          {"name": "MyTelescope", "id": "uuid-..."},
           ...
         ]
     """
@@ -39,15 +36,22 @@ def get_telescopes() -> list[dict]:
     api = TelescopeApi(client)
     telescopes = api.get_telescopes()
 
-    result = []
-    for t in telescopes:
-        instruments = [
-            {"name": inst.name, "id": inst.id}
-            for inst in (t.instruments or [])
-        ]
-        result.append({"name": t.name, "id": t.id, "instruments": instruments})
+    return [{"name": t.name, "id": t.id} for t in telescopes]
 
-    return result
+
+def short_name_to_uuid(short_name: str) -> str:
+    """Return the ACROSS instrument UUID for the given short name."""
+
+    config = Configuration(host="https://api.across.sciencecloud.nasa.gov/v1")
+    client = ApiClientWrapper.get_client(configuration=config)
+    api = InstrumentApi(client)
+    instruments = api.get_instruments()
+
+    for inst in instruments:
+        if inst.short_name == short_name:
+            return inst.id
+
+    raise ValueError(f"No instrument found with short name: {short_name!r}")
 
 
 # ---------------------------------------------------------------------------

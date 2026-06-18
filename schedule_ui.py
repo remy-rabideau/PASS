@@ -2,16 +2,12 @@
 Tkinter UI for sending a PlanDev schedule to ACROSS.
 
 Flow:
-  1. Pick a telescope    -> populates the instrument dropdown
-  2. Pick an instrument  -> loads the plan list from PlanDev
-  3. Pick a plan, fidelity, and status
-  4. Click "Send to ACROSS"
+  1. Pick a telescope    -> loads the plan list from PlanDev
+  2. Pick a plan, fidelity, and status
+  3. Click "Send to ACROSS"
 
-The telescope/instrument selections set across_sdk.TELESCOPE_UUID and
-across_sdk.INSTRUMENT_UUID (set on the across_sdk module itself, because it
-imported those names via `from config import *` and therefore has its own
-bindings). Fidelity and status are applied to the built ScheduleCreate before
-posting.
+The telescope selection sets across_sdk.TELESCOPE_UUID.
+Fidelity and status are applied to the built ScheduleCreate before posting.
 
 Launch with launch() from main.py.
 """
@@ -39,7 +35,6 @@ class ScheduleUI:
 
         # Data loaded from the APIs
         self.telescopes: list[dict] = []
-        self.instruments: list[dict] = []   # instruments of the selected telescope
         self.plans: list[dict] = []
 
         self._build_widgets()
@@ -55,42 +50,37 @@ class ScheduleUI:
         self.telescope_cb.grid(row=0, column=1, padx=12, pady=6)
         self.telescope_cb.bind("<<ComboboxSelected>>", self._on_telescope_selected)
 
-        ttk.Label(self.root, text="Instrument").grid(row=1, column=0, sticky="w", padx=12, pady=6)
-        self.instrument_cb = ttk.Combobox(self.root, state="disabled", width=32)
-        self.instrument_cb.grid(row=1, column=1, padx=12, pady=6)
-        self.instrument_cb.bind("<<ComboboxSelected>>", self._on_instrument_selected)
-
-        ttk.Label(self.root, text="Plan").grid(row=2, column=0, sticky="w", padx=12, pady=6)
+        ttk.Label(self.root, text="Plan").grid(row=1, column=0, sticky="w", padx=12, pady=6)
         self.plan_cb = ttk.Combobox(self.root, state="disabled", width=32)
-        self.plan_cb.grid(row=2, column=1, padx=12, pady=6)
+        self.plan_cb.grid(row=1, column=1, padx=12, pady=6)
 
-        ttk.Label(self.root, text="Fidelity").grid(row=3, column=0, sticky="w", padx=12, pady=6)
+        ttk.Label(self.root, text="Fidelity").grid(row=2, column=0, sticky="w", padx=12, pady=6)
         self.fidelity_cb = ttk.Combobox(
             self.root, state="readonly", width=32,
             values=[e.value for e in ScheduleFidelity],
         )
         self.fidelity_cb.set(ScheduleFidelity.LOW.value)
-        self.fidelity_cb.grid(row=3, column=1, padx=12, pady=6)
+        self.fidelity_cb.grid(row=2, column=1, padx=12, pady=6)
 
-        ttk.Label(self.root, text="Status").grid(row=4, column=0, sticky="w", padx=12, pady=6)
+        ttk.Label(self.root, text="Status").grid(row=3, column=0, sticky="w", padx=12, pady=6)
         self.status_cb = ttk.Combobox(
             self.root, state="readonly", width=32,
             values=[e.value for e in ScheduleStatus],
         )
         self.status_cb.set(ScheduleStatus.PLANNED.value)
-        self.status_cb.grid(row=4, column=1, padx=12, pady=6)
+        self.status_cb.grid(row=3, column=1, padx=12, pady=6)
 
-        ttk.Label(self.root, text="Activity types").grid(row=5, column=0, sticky="nw", padx=12, pady=6)
+        ttk.Label(self.root, text="Activity types").grid(row=4, column=0, sticky="nw", padx=12, pady=6)
         self.activity_lb = tk.Listbox(self.root, selectmode="multiple", width=32, height=6, exportselection=False)
-        self.activity_lb.grid(row=5, column=1, padx=12, pady=6)
+        self.activity_lb.grid(row=4, column=1, padx=12, pady=6)
 
         self.send_btn = ttk.Button(
             self.root, text="Send to ACROSS", state="disabled", command=self._send
         )
-        self.send_btn.grid(row=6, column=0, columnspan=2, pady=16)
+        self.send_btn.grid(row=5, column=0, columnspan=2, pady=16)
 
         self.status_lbl = ttk.Label(self.root, text="", foreground="#555", wraplength=400)
-        self.status_lbl.grid(row=7, column=0, columnspan=2, sticky="w", padx=12)
+        self.status_lbl.grid(row=6, column=0, columnspan=2, sticky="w", padx=12)
 
     # -- helpers ------------------------------------------------------------
 
@@ -99,10 +89,9 @@ class ScheduleUI:
         self.root.update_idletasks()   # show the message before any blocking call
 
     def _refresh_send_state(self):
-        """Enable the send button only when telescope, instrument, and plan are chosen."""
+        """Enable the send button only when telescope and plan are chosen."""
         ready = bool(
             getattr(across_sdk, "TELESCOPE_UUID", "")
-            and getattr(across_sdk, "INSTRUMENT_UUID", "")
             and self.plan_cb.get()
         )
         self.send_btn.config(state="normal" if ready else "disabled")
@@ -128,34 +117,11 @@ class ScheduleUI:
 
         across_sdk.TELESCOPE_UUID = telescope["id"]
 
-        # Populate instruments for this telescope; reset downstream selections.
-        self.instruments = telescope["instruments"]
-        self.instrument_cb.set("")
-        self.instrument_cb["values"] = [i["name"] for i in self.instruments]
-        self.instrument_cb.config(state="readonly" if self.instruments else "disabled")
-        across_sdk.INSTRUMENT_UUID = ""
-
         self.plan_cb.set("")
         self.plan_cb.config(state="disabled")
-
-        self._refresh_send_state()
-        if self.instruments:
-            self._set_status("Telescope set. Select an instrument.")
-        else:
-            self._set_status("This telescope has no instruments.", error=True)
-
-    def _on_instrument_selected(self, _event=None):
-        name = self.instrument_cb.get()
-        instrument = next((i for i in self.instruments if i["name"] == name), None)
-        if instrument is None:
-            return
-
-        across_sdk.INSTRUMENT_UUID = instrument["id"]
-        across_sdk.INSTRUMENT_NAME = instrument["name"]
         self._refresh_send_state()
 
-        # With telescope + instrument chosen, load the plan list.
-        self._set_status("Loading plans…")
+        self._set_status("Telescope set. Loading plans…")
         self._load_plans()
 
     def _on_plan_selected(self, _event=None):
