@@ -6,7 +6,7 @@ A desktop application that bridges observation planning and scheduling systems b
 
 PASS solves the workflow gap between observation planning and execution by providing an intuitive graphical interface to:
 
-1. **Select observation targets** – Choose a telescope and its corresponding instrument from your observatory infrastructure
+1. **Select a telescope** – Choose from available observatories registered in ACROSS
 2. **Load simulation data** – Retrieve pre-planned observation schedules and activity data from PlanDev
 3. **Configure schedule parameters** – Adjust fidelity levels and observation status before sending
 4. **Filter activities** – Select which activity types to include in the final schedule
@@ -35,17 +35,23 @@ This tool is essential for multi-mission observatory environments where observat
 
 ### Core Modules
 
-- **schedule_ui.py** – Tkinter-based user interface with dropdown menus for telescope/instrument/plan selection and observation activity filtering
+- **schedule_ui.py** – Tkinter-based user interface with dropdown menus for telescope and plan selection, fidelity/status configuration, and observation activity filtering
 - **across_sdk.py** – Observation mapping layer that converts PlanDev activity data into ACROSS-compatible observation objects
   - Handles multiple observation types (Imaging, Timing, Spectroscopy, Slew)
   - Provides a pluggable mapper registry for adding new activity types
   - Dynamically fetches instrument configurations (bandpass, resolution) from Hasura resources
   - Queries telescope pointing resources at precise observation start times
-- **across_data.py** – Data fetching from PlanDev's REST API for telescopes, instruments, plans, and activity metadata
-- **hasura_client.py** – GraphQL client for fetching detailed simulation datasets including simulated activities and resource values at specific time offsets
+  - Resolves instrument UUIDs from the instrument short name stored in each activity's arguments
+- **across_data.py** – All calls to the ACROSS REST API
+  - `get_telescopes()` – Fetches available telescopes
+  - `short_name_to_uuid()` – Resolves an instrument short name (e.g. `"Euclid NISP"`) to its ACROSS UUID
+- **hasura_client.py** – GraphQL client for the PlanDev Hasura API
+  - `get_simulation()` – Fetches simulation datasets and simulated activities for a plan
+  - `get_plans()` – Returns all plans with their most recent simulation status
+  - `get_activity_types()` – Returns distinct activity type names from a plan's simulation
   - `get_resource_at_time()` – Queries telescope pointing (RA/Dec) at observation start times
-  - `get_constant_resources()` – Fetches instrument configuration parameters dynamically
-  - `offset_to_interval()` – Converts PlanDev offset strings to GraphQL interval format
+  - `get_constant_resources()` – Fetches instrument configuration parameters from simulation resources
+  - `offset_to_interval()` – Converts PlanDev offset strings to PostgreSQL interval format
 - **config.py** – Environment configuration management for API credentials and endpoints
 
 ## Installation
@@ -97,22 +103,19 @@ python main.py
 
 The UI will launch with the following workflow:
 
-1. **Select Telescope** – Choose from available observatories (loads automatically)
-2. **Select Instrument** – Pick an instrument attached to the selected telescope
-3. **Select Plan** – Choose an observation plan from PlanDev (filtered by telescope + instrument)
-4. **Configure Observations**
+1. **Select Telescope** – Choose from available observatories (loads automatically from ACROSS)
+2. **Select Plan** – Choose an observation plan from PlanDev
+3. **Configure Observations**
    - **Fidelity** – Set observation fidelity (LOW, MEDIUM, HIGH)
    - **Status** – Set observation status (PLANNED, COMMITTED, APPROVED)
    - **Activity Types** – Filter which activity types to include (e.g., exclude slews, calibrations)
-5. **Send to ACROSS** – Submit the schedule; the UI displays the new ACROSS schedule ID on success
+4. **Send to ACROSS** – Submit the schedule; the UI displays the new ACROSS schedule ID on success
 
 ### Example Workflow
 
 ```
 Load telescopes… ✓
-Select "Chandra" telescope
-  → Instruments populate: "ACIS-I", "ACIS-S", "HRC", "LETG"
-Select "ACIS-I" instrument
+Select "XRISM" telescope
   → Load plans…
 Select "NGC-1234-Survey" plan
   → Load activity types: "ImageTarget", "TimeTarget", "Slew"
@@ -164,10 +167,11 @@ No mapper for these activity types (used placeholders): ["NewActivityType", "Unk
 
 ### Schedule Creation Process
 
-1. User selects telescope/instrument in UI
-2. PlanDev API returns available plans
+1. User selects telescope in UI; telescope UUID stored in `across_sdk.TELESCOPE_UUID`
+2. Hasura API returns available plans
 3. User selects plan; Hasura GraphQL fetches simulation data
 4. Simulated activities are iterated and converted to ACROSS Observations via mapper registry
+   - Each activity's `instrument` argument is resolved to an ACROSS UUID via `short_name_to_uuid()`
 5. ScheduleCreate object is assembled with:
    - Telescope UUID
    - Fidelity and status from UI selections
@@ -181,7 +185,8 @@ PlanDev Activity
     ↓
 _base_fields() → safe defaults (ObservationStatus.PLANNED, ObservationType.TIMING, etc.)
     ↓
-across_specific_fields() → queries Hasura for:
+across_specific_fields() → resolves instrument UUID via short_name_to_uuid(),
+                           queries Hasura for:
     - Telescope pointing (RA/Dec) at observation start time
     - Instrument configuration (bandpass type/unit/range, time resolution, EM resolution)
     ↓
@@ -257,13 +262,12 @@ MIT License – See LICENSE file for details.
 ## Troubleshooting
 
 ### "Failed to load telescopes"
-- Verify `HASURA_URL` and `HASURA_ADMIN_SECRET` are correct
-- Check network connectivity to Hasura endpoint
-- Ensure authentication token is valid and has admin privileges
+- Verify `ACROSS_CLIENT_ID` and `ACROSS_CLIENT_SECRET` are correct
+- Check network connectivity to the ACROSS API (`https://api.across.sciencecloud.nasa.gov/v1`)
 
-### "This telescope has no instruments"
-- The selected telescope may not have instruments registered in PlanDev
-- Contact your observatory administrator to verify telescope/instrument configuration
+### "No instrument found with short name"
+- The `instrument` argument in the activity does not match any instrument `short_name` in ACROSS
+- Verify the value matches exactly (e.g. `"Euclid NISP"`, `"Resolve"`); check `misc/short names.txt` for the full list
 
 ### "Send failed" on ACROSS submission
 - Verify `ACROSS_CLIENT_ID` and `ACROSS_CLIENT_SECRET` are correct
