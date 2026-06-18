@@ -22,8 +22,8 @@ from across.sdk.v1.api_client import ApiClient
 
 import across_sdk
 from across_sdk import create_schedule
-from across_data import get_telescopes, get_plans, get_activity_types
-from hasura_client import get_simulation
+from across_data import get_telescopes
+from hasura_client import get_simulation, get_plans, get_activity_types
 from config import ACROSS_CLIENT_ID, ACROSS_CLIENT_SECRET
 
 
