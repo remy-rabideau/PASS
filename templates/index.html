@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlanDev → ACROSS</title>
+  <style>
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      max-width: 440px;
+      margin: 48px auto;
+      padding: 0 20px;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; }
+    label { display: block; margin: 16px 0 4px; font-size: 0.9rem; }
+    select { width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; }
+    select[multiple] { height: 8rem; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    .hint { color: #666; font-size: 0.82rem; margin: 4px 0 0; }
+    .actions { display: flex; gap: 12px; margin-top: 24px; }
+    button { flex: 1; padding: 0.5rem; border: 1px solid #888; border-radius: 4px; background: #fff; cursor: pointer; }
+    button.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .msg { margin-top: 18px; padding: 0.6rem 0.7rem; border-radius: 4px; font-size: 0.9rem; }
+    .msg.ok { background: #e9f7ee; border: 1px solid #abdcbb; }
+    .msg.err { background: #fdecea; border: 1px solid #f3bdb7; }
+  </style>
+</head>
+<body>
+  <h1>PlanDev → ACROSS</h1>
+
+  <form method="post">
+    <label for="telescope">Telescope</label>
+    <select name="telescope" id="telescope">
+      <option value="">Select…</option>
+      {% for name in telescopes %}
+        <option value="{{ name }}" {{ 'selected' if name == selected.telescope }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="instrument">Instrument</label>
+    <select name="instrument" id="instrument">
+      <option value="">Select…</option>
+      {% for name in instruments %}
+        <option value="{{ name }}" {{ 'selected' if name == selected.instrument }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="plan">Plan</label>
+    <select name="plan" id="plan">
+      <option value="">Select…</option>
+      {% for name in plans %}
+        <option value="{{ name }}" {{ 'selected' if name == selected.plan }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="row">
+      <div>
+        <label for="fidelity">Fidelity</label>
+        <select name="fidelity" id="fidelity">
+          {% for f in fidelities %}
+            <option value="{{ f }}" {{ 'selected' if f == selected.fidelity }}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="status">Status</label>
+        <select name="status" id="status">
+          {% for s in statuses %}
+            <option value="{{ s }}" {{ 'selected' if s == selected.status }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <label for="activity_types">Activity types</label>
+    <select name="activity_types" id="activity_types" multiple>
+      {% for t in activity_types %}
+        <option value="{{ t }}" {{ 'selected' if not selected.activity_types or t in selected.activity_types }}>{{ t }}</option>
+      {% endfor %}
+    </select>
+    <p class="hint">Leave all unselected to include every type.</p>
+
+    <div class="actions">
+      <button type="submit" name="action" value="update">Update</button>
+      <button type="submit" name="action" value="send" class="primary" {{ 'disabled' if not can_send }}>Send to ACROSS</button>
+    </div>
+  </form>
+
+  {% if message %}<div class="msg ok">{{ message }}</div>{% endif %}
+  {% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+</body>
+</html>

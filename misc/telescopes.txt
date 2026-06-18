@@ -1,0 +1,20 @@
+be6eeadc-9b7c-481d-81bd-4d1314dc0d49 Imaging X-Ray Polarimetry Explorer
+222d5f4a-8fd6-4299-a696-b3a6cb13d7bc Large Area Telescope
+6fd90826-c3c9-4ad0-be01-63ed88a8f484 Gamma-ray Burst Monitor
+653e6456-2cb0-49da-a6be-7c7ed69c0cb5 Transiting Exoplanet Survey Satellite
+281a5a5d-3629-4aa3-a739-968bee65415f Nuclear Spectroscopic Telescope Array
+8ca37c8a-8fcc-404b-a58d-a9854099c97d Neutron Star Interior Composition Explorer
+310a569b-3280-48e7-9a53-1e2f2a88565f Chandra X-ray Telescope
+c4249d8b-f5aa-43fb-9c46-aaa9b503c446 Burst Alert Telescope
+4994a365-428f-40ce-92ae-64393b8b565a X-ray Telescope
+a17fb486-a194-4354-8c4c-f7582fd790bc UV/Optical Telescope
+d8af2063-1a11-4941-aa06-2d63a9d9b918 Hubble Space Telescope
+225ad468-585f-4f5e-8b64-09a4adfa1b7d James Webb Space Telescope
+f2ae30ec-cd64-41b1-a951-4da29aa9f4ab X-ray Multi-Mirror Mission
+bb811891-76d6-476d-9141-430c6ef5830d Keck I
+74c41e48-5428-4c7a-a16c-6e47e2a7a484 Keck II
+d18710e4-2a21-4dc6-8a57-eff0f46fc5f7 Simonyi Survey Telescope
+0c8163cd-aff1-445e-9dc2-ec396aab0340 Spectro-Photometer for the History of the Universe, Epoch of Reionization, and Ices Explorer
+0b85e647-ffd6-4342-9183-d4e214ce02a2 Pandora Observatory
+6f80ed81-bc0a-470f-a4dd-16db130911cb Euclid Telescope
+da146080-ddd8-4b4b-9be5-bc1f71763dc1 X-ray Mirror Assembly

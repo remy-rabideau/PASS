@@ -1,0 +1,16 @@
+9864f892-a980-442c-a0c9-f35e26e598dd Imaging X-Ray Polarimetry Explorer
+3417942b-7cc9-4e91-a9ab-fbc800871ef5 Fermi Gamma-ray Space Telescope
+3ae72d8d-f076-4ae2-b72f-7ceff2b547c8 Transiting Exoplanet Survey Satellite
+afc0ceca-bc57-4d38-a846-c5c36d62256a Nuclear Spectroscopic Telescope Array
+dbf57304-fb1c-4d3b-99b1-6a9f6ade05b3 Neutron Star Interior Composition Explorer
+6291c894-5e0c-4d80-a84c-e04b257f085d Chandra X-ray Observatory
+d5faadca-c0bb-4bb8-b4e4-75149b435ae8 Neil Gehrels Swift Observatory
+eb43bec9-0002-4c05-b294-de71453d95b6 Hubble Space Telescope
+fefe0ddc-07af-4312-b3a8-051c4e646619 James Webb Space Telescope
+639a2cf5-0b68-449b-846f-d117fd771c8d X-ray Multi-Mirror Mission
+eeab0ee9-a6b7-4d4d-ae95-8717e2817063 W. M. Keck Observatory
+6e4c4b89-0519-49d2-a69e-3b220aefa065 Vera C. Rubin Observatory
+8af7c8c9-3362-430a-8156-0d1e38808098 Spectro-Photometer for the History of the Universe, Epoch of Reionization, and Ices Explorer
+d5417cb0-5f4f-4e79-9a81-49eb77cfaea7 Pandora Observatory
+d5b1a290-0839-42e6-a8b0-63a55c8bdeb4 Euclid Observatory
+050cae97-6f92-4ee5-909f-19c79f8b13bd X-ray Imaging and Spectroscopy Mission

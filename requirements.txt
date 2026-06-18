@@ -1,0 +1,4 @@
+across-client
+Flask
+python-dotenv
+requests

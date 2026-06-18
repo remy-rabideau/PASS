@@ -1,0 +1,26 @@
+{
+    "XRayImager": {
+        "type": "ENERGY",
+        "unit": "keV",
+        "min": 0.3,
+        "max": 10.0,
+        "t_res": 0.073,
+        "em_res": null
+    },
+    "RadioReceiver": {
+        "type": "FREQUENCY",
+        "unit": "GHz",
+        "min": 1.0,
+        "max": 10.0,
+        "t_res": 1e-6,
+        "em_res": null
+    },
+    "OpticalCamera": {
+        "type": "WAVELENGTH",
+        "unit": "nm",
+        "min": 400,
+        "max": 2500,
+        "t_res": 0.1,
+        "em_res": null
+    }
+}
