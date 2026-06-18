@@ -1,5 +1,5 @@
 {
-    "XRayImager": {
+    "Imaging X-Ray Polarimetry Explorer": {
         "type": "ENERGY",
         "unit": "keV",
         "min": 0.3,
