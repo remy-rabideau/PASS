@@ -161,3 +161,23 @@ def create_schedule(
         )
 
     return schedule
+
+
+def observation_to_activity(obs: dict, plan_start: str) -> dict:
+    begin = datetime.fromisoformat(obs["begin"])
+    start = datetime.fromisoformat(plan_start)
+    offset = begin - start
+    total = int(offset.total_seconds())
+    h, rem = divmod(abs(total), 3600)
+    m, s = divmod(rem, 60)
+    sign = "-" if total < 0 else ""
+    return {
+        "type": "ObserveTarget",
+        "name": obs.get("object_name") or "ACROSS observation",
+        "start_offset": f"{sign}{h:02d}:{m:02d}:{s:02d}",
+        "arguments": {
+            "ra": obs["ra"],
+            "dec": obs["dec"],
+            "exposure": obs.get("exposure_time") or 0,
+        },
+    }

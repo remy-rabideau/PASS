@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACROSS → PlanDev</title>
+  <style>
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      max-width: 640px;
+      margin: 48px auto;
+      padding: 0 20px;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; }
+    a { color: #1a1a1a; font-size: 0.85rem; }
+    label { display: block; margin: 16px 0 4px; font-size: 0.9rem; }
+    select, input { width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin-top: 18px; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+    .actions { display: flex; gap: 12px; margin-top: 24px; }
+    button { flex: 1; padding: 0.5rem; border: 1px solid #888; border-radius: 4px; background: #fff; cursor: pointer; }
+    button.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .msg { margin-top: 18px; padding: 0.6rem 0.7rem; border-radius: 4px; font-size: 0.9rem; }
+    .msg.ok { background: #e9f7ee; border: 1px solid #abdcbb; }
+    .msg.err { background: #fdecea; border: 1px solid #f3bdb7; }
+  </style>
+</head>
+<body>
+  <h1>ACROSS → PlanDev</h1>
+  <a href="/">← Send to ACROSS</a>
+
+  <form method="post">
+    <label for="plan">Plan to import into</label>
+    <select name="plan" id="plan">
+      <option value="">Select…</option>
+      {% for name in plans %}
+        <option value="{{ name }}" {{ 'selected' if name == selected.plan }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="row">
+      <div><label for="ra">RA</label><input name="ra" id="ra" value="{{ selected.ra }}"></div>
+      <div><label for="dec">Dec</label><input name="dec" id="dec" value="{{ selected.dec }}"></div>
+      <div><label for="radius">Radius (deg)</label><input name="radius" id="radius" value="{{ selected.radius }}"></div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" name="action" value="search">Search ACROSS</button>
+      <button type="submit" name="action" value="import" class="primary" {{ 'disabled' if not observations }}>Import selected</button>
+    </div>
+
+    {% if observations %}
+    <table>
+      <tr><th></th><th>Object</th><th>RA</th><th>Dec</th><th>Type</th><th>Begin</th></tr>
+      {% for o in observations %}
+      <tr>
+        <td><input type="checkbox" name="obs" value="{{ loop.index0 }}" checked></td>
+        <td>{{ o.object_name }}</td>
+        <td>{{ "%.2f"|format(o.ra) }}</td>
+        <td>{{ "%.2f"|format(o.dec) }}</td>
+        <td>{{ o.type }}</td>
+        <td>{{ o.begin }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </form>
+
+  {% if message %}<div class="msg ok">{{ message }}</div>{% endif %}
+  {% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+</body>
+</html>

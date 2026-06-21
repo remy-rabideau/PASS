@@ -5,9 +5,9 @@ from across.sdk.v1.api_client import ApiClient
 from across.sdk.v1.models.schedule_status import ScheduleStatus
 from across.sdk.v1.models.schedule_fidelity import ScheduleFidelity
 
-from across_sdk import create_schedule
-from across_data import get_telescopes, get_plans, get_activity_types
-from hasura_client import get_simulation
+from across_sdk import create_schedule, observation_to_activity
+from across_data import get_telescopes, get_plans, get_activity_types, get_nearby_observations
+from hasura_client import get_simulation, insert_activity
 from config import ACROSS_CLIENT_ID, ACROSS_CLIENT_SECRET
 
 app = Flask(__name__)
@@ -97,6 +97,54 @@ def index():
             "activity_types": selected_types,
         },
         can_send=plan is not None,
+        message=message,
+        error=error,
+    )
+
+
+@app.route("/import", methods=["GET", "POST"])
+def import_observations():
+    form = request.form
+    plan_name = form.get("plan", "")
+    ra = form.get("ra", "")
+    dec = form.get("dec", "")
+    radius = form.get("radius", "5")
+
+    message = None
+    error = None
+    observations = []
+    plans = []
+    plan = None
+    try:
+        plans = get_plans()
+        plan = _find(plans, plan_name)
+        if ra and dec:
+            observations = get_nearby_observations(float(ra), float(dec), float(radius))
+    except Exception as e:
+        error = f"Could not load data: {e}"
+
+    if not error and form.get("action") == "import" and observations:
+        if plan is None:
+            error = "Pick a plan first."
+        else:
+            try:
+                sim = get_simulation(plan["id"])
+                plan_start = sim["simulation_start_time"]
+                chosen = form.getlist("obs")
+                count = 0
+                for i in chosen:
+                    activity = observation_to_activity(observations[int(i)], plan_start)
+                    insert_activity(plan["id"], activity)
+                    count += 1
+                message = f"Imported {count} observation(s) into plan '{plan['name']}'."
+            except Exception as e:
+                error = f"Import failed: {e}"
+
+    return render_template(
+        "import.html",
+        plans=[p["name"] for p in plans],
+        observations=observations,
+        selected={"plan": plan_name, "ra": ra, "dec": dec, "radius": radius},
         message=message,
         error=error,
     )

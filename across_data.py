@@ -1,8 +1,39 @@
+import requests
+
 from across.sdk.v1.configuration import Configuration
 from across.sdk.v1.api_client_wrapper import ApiClientWrapper
 from across.sdk.v1.api.telescope_api import TelescopeApi
 
 from hasura_client import query
+
+ACROSS_API = "https://api.across.sciencecloud.nasa.gov/v1"
+
+
+def get_nearby_observations(ra: float, dec: float, radius: float, limit: int = 20) -> list[dict]:
+    response = requests.get(
+        f"{ACROSS_API}/observation/",
+        params={
+            "cone_search_ra": ra,
+            "cone_search_dec": dec,
+            "cone_search_radius": radius,
+            "page": 1,
+            "page_limit": limit,
+        },
+    )
+    response.raise_for_status()
+
+    result = []
+    for o in response.json()["items"]:
+        result.append({
+            "object_name": o.get("object_name"),
+            "ra": o["pointing_position"]["ra"],
+            "dec": o["pointing_position"]["dec"],
+            "begin": o["date_range"]["begin"],
+            "end": o["date_range"]["end"],
+            "type": o.get("type"),
+            "exposure_time": o.get("exposure_time"),
+        })
+    return result
 
 
 def get_telescopes() -> list[dict]:

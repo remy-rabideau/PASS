@@ -52,3 +52,23 @@ query GetLatestSimulation($planId: Int!) {
 
 def get_simulation(plan_id: int) -> dict:
     return query(SIM_QUERY, {"planId": plan_id})["data"]["simulation"][0]
+
+
+INSERT_ACTIVITY_MUTATION = """
+mutation InsertActivity($planId: Int!, $type: String!, $name: String!, $startOffset: interval!, $arguments: jsonb!) {
+  insert_activity_directive_one(object: {
+    plan_id: $planId, type: $type, name: $name, start_offset: $startOffset, arguments: $arguments
+  }) { id }
+}
+"""
+
+
+def insert_activity(plan_id: int, activity: dict) -> int:
+    vars = {
+        "planId": plan_id,
+        "type": activity["type"],
+        "name": activity["name"],
+        "startOffset": activity["start_offset"],
+        "arguments": activity["arguments"],
+    }
+    return query(INSERT_ACTIVITY_MUTATION, vars)["data"]["insert_activity_directive_one"]["id"]
