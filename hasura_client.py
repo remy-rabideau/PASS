@@ -10,6 +10,7 @@ def query(query: str, vars: dict) -> dict:
             "Content-Type": "application/json",
         },
         json={"query": query, "variables": vars},
+        timeout=30,
     )
 
     response.raise_for_status()

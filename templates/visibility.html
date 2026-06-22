@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Target Visibility</title>
+  <style>
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      max-width: 640px;
+      margin: 48px auto;
+      padding: 0 20px;
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; }
+    h2 { font-size: 0.95rem; font-weight: 600; margin-top: 24px; }
+    a { color: #1a1a1a; font-size: 0.85rem; }
+    label { display: block; margin: 16px 0 4px; font-size: 0.9rem; }
+    select, input { width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+    button { margin-top: 24px; padding: 0.5rem 1.2rem; border: 1px solid #1a1a1a; border-radius: 4px; background: #1a1a1a; color: #fff; cursor: pointer; }
+    .resolved { margin-top: 18px; padding: 0.6rem 0.7rem; border-radius: 4px; background: #eef3fb; border: 1px solid #c2d4ee; font-size: 0.9rem; }
+    .msg.err { margin-top: 18px; padding: 0.6rem 0.7rem; border-radius: 4px; background: #fdecea; border: 1px solid #f3bdb7; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>Target Visibility</h1>
+  <a href="/">← Send to ACROSS</a> &nbsp; <a href="/import">Import from ACROSS →</a>
+
+  <form method="post">
+    <label for="object_name">Target name</label>
+    <input name="object_name" id="object_name" value="{{ selected.object_name }}" placeholder="e.g. M31">
+
+    <label for="instrument">Instrument</label>
+    <select name="instrument" id="instrument">
+      <option value="">Select…</option>
+      {% for name in instruments %}
+        <option value="{{ name }}" {{ 'selected' if name == selected.instrument }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="row">
+      <div><label for="begin">From</label><input name="begin" id="begin" value="{{ selected.begin }}"></div>
+      <div><label for="end">To</label><input name="end" id="end" value="{{ selected.end }}"></div>
+    </div>
+
+    <button type="submit" name="action" value="check">Check visibility</button>
+  </form>
+
+  {% if resolved %}
+  <div class="resolved">
+    Resolved <strong>{{ selected.object_name }}</strong> → RA {{ "%.4f"|format(resolved.ra) }}, Dec {{ "%.4f"|format(resolved.dec) }}
+    (via {{ resolved.resolver }})
+  </div>
+  {% endif %}
+
+  {% if windows %}
+  <h2>Visibility windows ({{ windows|length }})</h2>
+  <table>
+    <tr><th>From</th><th>To</th><th>Duration (s)</th></tr>
+    {% for w in windows %}
+    <tr><td>{{ w.begin }}</td><td>{{ w.end }}</td><td>{{ w.duration }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if nearby %}
+  <h2>Already observed nearby ({{ nearby|length }})</h2>
+  <table>
+    <tr><th>Object</th><th>RA</th><th>Dec</th><th>Type</th></tr>
+    {% for o in nearby %}
+    <tr><td>{{ o.object_name }}</td><td>{{ "%.2f"|format(o.ra) }}</td><td>{{ "%.2f"|format(o.dec) }}</td><td>{{ o.type }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+</body>
+</html>

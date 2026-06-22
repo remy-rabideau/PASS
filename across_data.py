@@ -19,6 +19,7 @@ def get_nearby_observations(ra: float, dec: float, radius: float, limit: int = 2
             "page": 1,
             "page_limit": limit,
         },
+        timeout=30,
     )
     response.raise_for_status()
 
@@ -32,6 +33,42 @@ def get_nearby_observations(ra: float, dec: float, radius: float, limit: int = 2
             "end": o["date_range"]["end"],
             "type": o.get("type"),
             "exposure_time": o.get("exposure_time"),
+        })
+    return result
+
+
+def resolve_object(object_name: str) -> dict:
+    response = requests.get(
+        f"{ACROSS_API}/tools/resolve-object/",
+        params={"object_name": object_name},
+        timeout=30,
+    )
+    response.raise_for_status()
+    data = response.json()
+    return {"ra": data["ra"], "dec": data["dec"], "resolver": data.get("resolver")}
+
+
+def get_visibility_windows(
+    instrument_id: str, ra: float, dec: float, begin: str, end: str
+) -> list[dict]:
+    response = requests.get(
+        f"{ACROSS_API}/tools/visibility-calculator/windows/{instrument_id}",
+        params={
+            "ra": ra,
+            "dec": dec,
+            "date_range_begin": begin,
+            "date_range_end": end,
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+
+    result = []
+    for w in response.json()["visibility_windows"]:
+        result.append({
+            "begin": w["window"]["begin"]["datetime"],
+            "end": w["window"]["end"]["datetime"],
+            "duration": w["max_visibility_duration"],
         })
     return result
 

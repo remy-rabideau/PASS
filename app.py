@@ -6,7 +6,14 @@ from across.sdk.v1.models.schedule_status import ScheduleStatus
 from across.sdk.v1.models.schedule_fidelity import ScheduleFidelity
 
 from across_sdk import create_schedule, observation_to_activity
-from across_data import get_telescopes, get_plans, get_activity_types, get_nearby_observations
+from across_data import (
+    get_telescopes,
+    get_plans,
+    get_activity_types,
+    get_nearby_observations,
+    resolve_object,
+    get_visibility_windows,
+)
 from hasura_client import get_simulation, insert_activity
 from config import ACROSS_CLIENT_ID, ACROSS_CLIENT_SECRET
 
@@ -97,6 +104,48 @@ def index():
             "activity_types": selected_types,
         },
         can_send=plan is not None,
+        message=message,
+        error=error,
+    )
+
+
+@app.route("/visibility", methods=["GET", "POST"])
+def visibility():
+    form = request.form
+    object_name = form.get("object_name", "")
+    begin = form.get("begin", "2026-07-01T00:00:00")
+    end = form.get("end", "2026-07-02T00:00:00")
+    instrument_name = form.get("instrument", "")
+
+    message = None
+    error = None
+    instruments = []
+    resolved = None
+    windows = []
+    nearby = []
+    try:
+        instruments = []
+        for t in get_telescopes():
+            for inst in t["instruments"]:
+                instruments.append({"name": f"{t['name']} / {inst['name']}", "id": inst["id"]})
+        if object_name and form.get("action") == "check":
+            resolved = resolve_object(object_name)
+            instrument = next((i for i in instruments if i["name"] == instrument_name), None)
+            if instrument:
+                windows = get_visibility_windows(
+                    instrument["id"], resolved["ra"], resolved["dec"], begin, end
+                )
+            nearby = get_nearby_observations(resolved["ra"], resolved["dec"], 5)
+    except Exception as e:
+        error = f"Could not load data: {e}"
+
+    return render_template(
+        "visibility.html",
+        instruments=[i["name"] for i in instruments],
+        selected={"object_name": object_name, "begin": begin, "end": end, "instrument": instrument_name},
+        resolved=resolved,
+        windows=windows,
+        nearby=nearby,
         message=message,
         error=error,
     )
