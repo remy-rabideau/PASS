@@ -26,6 +26,7 @@ def get_nearby_observations(ra: float, dec: float, radius: float, limit: int = 2
     result = []
     for o in response.json()["items"]:
         result.append({
+            "id": o.get("id"),
             "object_name": o.get("object_name"),
             "ra": o["pointing_position"]["ra"],
             "dec": o["pointing_position"]["dec"],

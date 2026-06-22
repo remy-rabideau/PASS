@@ -29,12 +29,14 @@ def _find(items: list[dict], name: str) -> dict | None:
 
 def _send(plan, telescope, instrument, fidelity, status, allowed_types) -> str:
     simulation = get_simulation(plan["id"])
+    instruments_by_name = {i["name"]: i["id"] for i in telescope.get("instruments", [])}
     schedule = create_schedule(
         simulation,
         plan["id"],
         telescope_uuid=telescope["id"],
         instrument_uuid=instrument["id"],
         allowed_activity_types=allowed_types,
+        instruments_by_name=instruments_by_name,
     )
     schedule.fidelity = ScheduleFidelity(fidelity)
     schedule.status = ScheduleStatus(status)

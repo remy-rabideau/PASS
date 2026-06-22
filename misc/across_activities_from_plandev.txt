@@ -1,71 +1,75 @@
-      {
-        "attributes": {
-          "arguments": {
-            "ra": 56,
-            "dec": 88,
-            "dataBin": 0,
-            "exposure": 60000000,
-            "targetName": "Mars",
-            "dataRateBps": 500000,
-            "description": "",
-            "tResolution": 0.001,
-            "energyMaxKev": 10,
-            "energyMinKev": 0.3
-          },
-          "directiveId": 1697,
-          "computedAttributes": {}
-        },
-        "activity_type_name": "TimeTarget"
-      },
-      {
-        "attributes": {
-          "arguments": {
-            "ra": 30,
-            "dec": 60,
-            "duration": 60000000,
-            "targetName": "UNKNOWN",
-            "description": "",
-            "pointingAngle": -19
-          },
-          "directiveId": 1696,
-          "computedAttributes": {}
-        },
-        "activity_type_name": "Slew"
-      },
-      {
-        "attributes": {
-          "arguments": {
-            "ra": 0,
-            "dec": 0,
-            "dataBin": 0,
-            "exposure": 30000000,
-            "targetName": "Mars",
-            "dataRateBps": 1000000,
-            "description": "",
-            "energyMaxKev": 10,
-            "energyMinKev": 0.3
-          },
-          "directiveId": 1695,
-          "computedAttributes": {}
-        },
-        "activity_type_name": "ImageTarget"
-      },
-      {
-        "attributes": {
-          "arguments": {
-            "ra": 45,
-            "dec": 75,
-            "dataBin": 0,
-            "exposure": 120000000,
-            "emResPower": 1000,
-            "targetName": "Phoenix cluster",
-            "dataRateBps": 2000000,
-            "description": "",
-            "energyMaxKev": 10,
-            "energyMinKev": 0.3
-          },
-          "directiveId": 1694,
-          "computedAttributes": {}
-        },
-        "activity_type_name": "ObserveSpectrum"
-      }
+{
+  "attributes": {
+    "arguments": {
+      "observationType": "imaging",
+      "instrument": "XRayImager",
+      "targetName": "NGC 1234",
+      "ra": 10.68,
+      "dec": 41.27,
+      "exposure": 1800,
+      "bandpassType": "energy",
+      "bandMin": 0.3,
+      "bandMax": 10,
+      "description": ""
+    },
+    "directiveId": 1001,
+    "computedAttributes": {}
+  },
+  "activity_type_name": "ObserveTarget"
+},
+{
+  "attributes": {
+    "arguments": {
+      "observationType": "timing",
+      "instrument": "XRayImager",
+      "targetName": "Crab Pulsar",
+      "ra": 83.63,
+      "dec": 22.01,
+      "exposure": 1200,
+      "bandpassType": "energy",
+      "bandMin": 0.3,
+      "bandMax": 10,
+      "tResolution": 0.001,
+      "description": ""
+    },
+    "directiveId": 1002,
+    "computedAttributes": {}
+  },
+  "activity_type_name": "ObserveTarget"
+},
+{
+  "attributes": {
+    "arguments": {
+      "observationType": "spectroscopy",
+      "instrument": "XRayGrating",
+      "targetName": "M87",
+      "ra": 187.71,
+      "dec": 12.39,
+      "exposure": 3600,
+      "bandpassType": "energy",
+      "bandMin": 0.3,
+      "bandMax": 10,
+      "emResPower": 1000,
+      "description": ""
+    },
+    "directiveId": 1003,
+    "computedAttributes": {}
+  },
+  "activity_type_name": "ObserveTarget"
+},
+{
+  "attributes": {
+    "arguments": {
+      "observationType": "slew",
+      "instrument": "XRayImager",
+      "targetName": "UNKNOWN",
+      "ra": 30,
+      "dec": 60,
+      "pointingAngle": -19,
+      "description": ""
+    },
+    "directiveId": 1004,
+    "computedAttributes": {}
+  },
+  "activity_type_name": "ObserveTarget"
+}

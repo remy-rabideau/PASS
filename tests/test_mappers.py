@@ -31,11 +31,15 @@ def test_slew_has_null_bandpass_not_string():
     assert slew["bandpass"]["min"] is None
 
 
-def test_forward_filter_single_type():
-    schedule = across_sdk.create_schedule(
+def test_forward_filter_by_activity_type():
+    keep = across_sdk.create_schedule(
         SIM["data"]["simulation"][0], 12,
-        telescope_uuid="t", instrument_uuid="i", allowed_activity_types=["ImageTarget"])
-    assert len(schedule.observations) == 1
+        telescope_uuid="t", instrument_uuid="i", allowed_activity_types=["ObserveTarget"])
+    assert len(keep.observations) == 4
+    drop = across_sdk.create_schedule(
+        SIM["data"]["simulation"][0], 12,
+        telescope_uuid="t", instrument_uuid="i", allowed_activity_types=["Nonexistent"])
+    assert len(drop.observations) == 0
 
 
 def test_inverse_mapper_offset_and_args():
@@ -43,8 +47,10 @@ def test_inverse_mapper_offset_and_args():
            "begin": "2026-07-20T18:56:01", "end": "2026-07-20T19:38:01",
            "exposure_time": 2520.0, "type": "imaging"}
     a = across_sdk.observation_to_activity(obs, "2026-07-20T12:00:00")
+    assert a["type"] == "ObserveTarget"
     assert a["start_offset"] == "06:56:01"
     assert a["name"] == "M31"
+    assert a["arguments"]["observationType"] == "imaging"
     assert a["arguments"]["ra"] == 10.68
     assert a["arguments"]["dec"] == 41.27
 
