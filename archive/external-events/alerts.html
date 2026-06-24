@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACROSS event overlay</title>
+  <style>
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      max-width: 540px;
+      margin: 48px auto;
+      padding: 0 20px;
+      color: #1f2328;
+      line-height: 1.55;
+    }
+    h1 { font-size: 1.15rem; font-weight: 600; margin-bottom: 2px; }
+    .sub { color: #57606a; font-size: 0.9rem; margin: 0 0 20px; }
+    nav { font-size: 0.85rem; margin-bottom: 24px; }
+    nav a { color: #0969da; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    label { display: block; margin: 16px 0 4px; font-size: 0.9rem; font-weight: 500; }
+    select { width: 100%; padding: 0.45rem; border: 1px solid #d0d7de; border-radius: 6px; }
+    .hint { color: #57606a; font-size: 0.82rem; margin: 6px 0 0; }
+    .actions { margin-top: 20px; }
+    button { padding: 0.5rem 1rem; border: 1px solid #1f2328; border-radius: 6px; background: #1f2328; color: #fff; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background: #32383f; }
+    .msg { margin-top: 18px; padding: 0.6rem 0.75rem; border-radius: 6px; font-size: 0.875rem; border: 1px solid #d8dee4; background: #f6f8fa; }
+    .msg.err { border-color: #f0c2bd; background: #fdf3f2; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #eaeef2; }
+    th { color: #57606a; font-weight: 500; }
+    td.num { font-variant-numeric: tabular-nums; }
+    .caption { color: #57606a; font-size: 0.8rem; margin-top: 10px; }
+    code { background: #eff1f3; padding: 0 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>ACROSS event overlay</h1>
+  <p class="sub">Pull events from ACROSS onto a plan's timeline as external events.</p>
+  <nav><a href="/">Send to ACROSS</a> &nbsp;·&nbsp; <a href="/import">Import observations</a></nav>
+
+  <form method="post">
+    <label for="plan">Plan</label>
+    <select name="plan" id="plan">
+      <option value="">Select a plan…</option>
+      {% for name in plans %}
+        <option value="{{ name }}" {{ 'selected' if name == selected.plan }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    <p class="hint">Retrieves multi-messenger broker alerts when ACROSS has them, otherwise recent
+      ACROSS observations. Each is written to the plan's external-events timeline.</p>
+
+    <div class="actions">
+      <button type="submit" name="action" value="sync">Sync from ACROSS</button>
+    </div>
+  </form>
+
+  {% if message %}<div class="msg">{{ message }}</div>{% endif %}
+  {% if error %}<div class="msg err">{{ error }}</div>{% endif %}
+
+  {% if result %}
+    <table>
+      <tr><th>Target</th><th>Kind</th><th>Observed (UTC)</th><th>RA°</th><th>Dec°</th></tr>
+      {% for e in result.events %}
+        <tr>
+          <td>{{ e.name }}</td>
+          <td>{{ e.kind }}</td>
+          <td>{{ e.observed_at }}</td>
+          <td class="num">{{ e.ra }}</td>
+          <td class="num">{{ e.dec }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+    <p class="caption">Linked to derivation group <code>{{ result.derivation_group }}</code>.
+      Open the plan in PlanDev → External Sources to view it on the timeline.</p>
+  {% endif %}
+</body>
+</html>

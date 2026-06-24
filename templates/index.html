@@ -36,7 +36,7 @@
 
   <form method="post">
     <label for="telescope">Telescope</label>
-    <select name="telescope" id="telescope">
+    <select name="telescope" id="telescope" onchange="this.form.submit()">
       <option value="">Select…</option>
       {% for name in telescopes %}
         <option value="{{ name }}" {{ 'selected' if name == selected.telescope }}>{{ name }}</option>
@@ -44,7 +44,7 @@
     </select>
 
     <label for="instrument">Instrument</label>
-    <select name="instrument" id="instrument">
+    <select name="instrument" id="instrument" onchange="this.form.submit()">
       <option value="">Select…</option>
       {% for name in instruments %}
         <option value="{{ name }}" {{ 'selected' if name == selected.instrument }}>{{ name }}</option>
@@ -52,7 +52,7 @@
     </select>
 
     <label for="plan">Plan</label>
-    <select name="plan" id="plan">
+    <select name="plan" id="plan" onchange="this.form.submit()">
       <option value="">Select…</option>
       {% for name in plans %}
         <option value="{{ name }}" {{ 'selected' if name == selected.plan }}>{{ name }}</option>

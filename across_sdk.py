@@ -43,23 +43,6 @@ def _resolve_instrument(args: dict, default_uuid: str, instruments_by_name: dict
     return default_uuid
 
 
-def _placeholder_observation(activity: dict, instrument_uuid: str) -> ObservationCreate:
-    """Safe defaults for an activity that is not an ObserveTarget."""
-    return ObservationCreate(
-        instrument_id=instrument_uuid,
-        external_observation_id=str(activity["id"]),
-        date_range=DateRange(
-            begin=datetime.fromisoformat(activity["start_time"]),
-            end=datetime.fromisoformat(activity["end_time"]),
-        ),
-        status=ObservationStatus.PLANNED,
-        type=ObservationType.TIMING,
-        object_name="UNKNOWN",
-        description=activity["activity_type_name"],
-        bandpass=build_bandpass({}),
-    )
-
-
 def _observe_target(activity: dict, instrument_uuid: str) -> ObservationCreate:
     args = activity["attributes"]["arguments"]
     otype = (args.get("observationType") or "timing").lower()
@@ -95,12 +78,7 @@ def create_observation(
     activity: dict,
     default_instrument_uuid: str,
     instruments_by_name: dict,
-    unmapped: set[str],
 ) -> ObservationCreate:
-    if activity["activity_type_name"] != "ObserveTarget":
-        unmapped.add(activity["activity_type_name"])
-        return _placeholder_observation(activity, default_instrument_uuid)
-
     instrument_uuid = _resolve_instrument(
         activity["attributes"]["arguments"], default_instrument_uuid, instruments_by_name
     )
@@ -111,11 +89,12 @@ def build_observations(
     activities: list,
     default_instrument_uuid: str,
     instruments_by_name: dict,
-    unmapped: set[str],
 ) -> list:
+    # only ObserveTarget activities become observations
     return [
-        create_observation(a, default_instrument_uuid, instruments_by_name, unmapped)
+        create_observation(a, default_instrument_uuid, instruments_by_name)
         for a in activities
+        if a["activity_type_name"] == "ObserveTarget"
     ]
 
 
@@ -134,9 +113,7 @@ def create_schedule(
             a for a in activities if a["activity_type_name"] in allowed_activity_types
         ]
 
-    unmapped: set[str] = set()
-
-    schedule = ScheduleCreate(
+    return ScheduleCreate(
         telescope_id=telescope_uuid,
         name=sim["plan"]["name"],
         date_range=DateRange(
@@ -147,23 +124,17 @@ def create_schedule(
         fidelity=ScheduleFidelity.LOW,
         external_id=str(plan_id),
         observations=build_observations(
-            activities, instrument_uuid, instruments_by_name or {}, unmapped
+            activities, instrument_uuid, instruments_by_name or {}
         ),
     )
-
-    if unmapped:
-        print(
-            "No mapper for these activity types (used placeholders):",
-            sorted(unmapped),
-        )
-
-    return schedule
 
 
 def observation_to_activity(obs: dict, plan_start: str) -> dict:
     """Inverse: an ACROSS observation -> a PlanDev ObserveTarget activity directive."""
-    begin = datetime.fromisoformat(obs["begin"])
-    start = datetime.fromisoformat(plan_start)
+    # ACROSS times and the plan start can differ in timezone awareness; compare
+    # both as naive (UTC wall-clock) so the offset subtraction is well-defined.
+    begin = datetime.fromisoformat(obs["begin"]).replace(tzinfo=None)
+    start = datetime.fromisoformat(plan_start).replace(tzinfo=None)
     total = int((begin - start).total_seconds())
     h, rem = divmod(abs(total), 3600)
     m, s = divmod(rem, 60)

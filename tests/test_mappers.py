@@ -55,7 +55,7 @@ def test_inverse_mapper_offset_and_args():
     assert a["arguments"]["dec"] == 41.27
 
 
-def test_unmapped_type_uses_placeholder():
+def test_non_observetarget_is_skipped():
     sim = {
         "simulation_start_time": "2026-07-20T12:00:00",
         "simulation_end_time": "2026-07-21T00:00:00",
@@ -67,4 +67,4 @@ def test_unmapped_type_uses_placeholder():
     }
     schedule = across_sdk.create_schedule(
         sim, 1, telescope_uuid="t", instrument_uuid="i", allowed_activity_types=[])
-    assert len(schedule.observations) == 1
+    assert len(schedule.observations) == 0

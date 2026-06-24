@@ -1,284 +1,125 @@
-# PASS – PlanDev-ACROSS Schedule Sender
+# PlanDev ⇄ ACROSS Integration
 
-A desktop application that bridges observation planning and scheduling systems by enabling users to send schedules from **PlanDev** (a planning and simulation system) to **ACROSS** (a scheduling and observation management system).
+A small Flask service that connects a local **PlanDev** (NASA Aerie) instance to
+**ACROSS** (NASA's Astrophysics Cross-Observatory Science Support API), in both
+directions. It lets a planner send a simulated plan to ACROSS, pull real ACROSS
+data back into a plan, and overlay external ACROSS events on a plan's timeline.
 
-## Purpose
+## What it does
 
-PASS solves the workflow gap between observation planning and execution by providing an intuitive graphical interface to:
-
-1. **Select observation targets** – Choose a telescope and its corresponding instrument from your observatory infrastructure
-2. **Load simulation data** – Retrieve pre-planned observation schedules and activity data from PlanDev
-3. **Configure schedule parameters** – Adjust fidelity levels and observation status before sending
-4. **Filter activities** – Select which activity types to include in the final schedule
-5. **Submit to ACROSS** – Post the complete schedule to ACROSS for operational execution
-
-This tool is essential for multi-mission observatory environments where observation plans must be simulated and validated in a planning system before being transmitted to the live scheduling system.
+| Flow | Direction | Entry point |
+|------|-----------|-------------|
+| **Export** | plan's simulated activities → ACROSS schedule | `/` |
+| **Import** | ACROSS observations → plan activities | `/import` |
+| **Alerts overlay** | ACROSS events → plan external events (timeline) | `/alerts`, extension |
+| **Visibility** | resolve a target, ask ACROSS when it is observable | `/visibility` |
 
 ## Architecture
 
-### System Integration
+Three systems, each reached through its own interface. Flask runs on the host;
+PlanDev runs in Docker.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Desktop UI (Tkinter)                     │
-│              (ScheduleUI – schedule_ui.py)                  │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-    ┌────▼────┐  ┌──────▼──────┐  ┌────▼─────┐
-    │ PlanDev │  │ Hasura API  │  │  ACROSS  │
-    │  Data   │  │ (GraphQL)   │  │  Client  │
-    │ Loading │  │ Simulation  │  │  (REST)  │
-    └─────────┘  └─────────────┘  └──────────┘
+ HOST                                   DOCKER (PlanDev)                  CLOUD
+  Flask :5000 ── GraphQL ─────────────► Hasura  :8080 ─► Postgres :5432
+       │  (this service)                Gateway :9000 ─► (all data)
+       │         ── multipart upload ─► (JARs, external sources)
+       │                                Aerie UI :80  ─► reads DB via Hasura
+       ▼  HTTPS
+  ACROSS REST  api.across.sciencecloud.nasa.gov/v1
 ```
 
-### Core Modules
+- **ACROSS REST** — the science API. Reads need no credentials; the export POST
+  needs `ACROSS_CLIENT_ID`/`SECRET`.
+- **Hasura** (`:8080`) — PlanDev's GraphQL API over Postgres (read plans/sims,
+  write activities, link derivation groups).
+- **Gateway** (`:9000`) — PlanDev's upload/auth service (model JARs, external
+  sources). Local PlanDev runs `AUTH_TYPE=none`, so any login mints a token.
 
-- **schedule_ui.py** – Tkinter-based user interface with dropdown menus for telescope/instrument/plan selection and observation activity filtering
-- **across_sdk.py** – Observation mapping layer that converts PlanDev activity data into ACROSS-compatible observation objects
-  - Handles multiple observation types (Imaging, Timing, Spectroscopy, Slew)
-  - Provides a pluggable mapper registry for adding new activity types
-  - Dynamically fetches instrument configurations (bandpass, resolution) from Hasura resources
-  - Queries telescope pointing resources at precise observation start times
-- **across_data.py** – Data fetching from PlanDev's REST API for telescopes, instruments, plans, and activity metadata
-- **hasura_client.py** – GraphQL client for fetching detailed simulation datasets including simulated activities and resource values at specific time offsets
-  - `get_resource_at_time()` – Queries telescope pointing (RA/Dec) at observation start times
-  - `get_constant_resources()` – Fetches instrument configuration parameters dynamically
-  - `offset_to_interval()` – Converts PlanDev offset strings to GraphQL interval format
-- **config.py** – Environment configuration management for API credentials and endpoints
+## Modules & functions
 
-## Installation
+| Module | Function | Role in the pipeline |
+|--------|----------|----------------------|
+| `config.py` | — | Loads `.env` (Hasura, gateway, ACROSS creds). |
+| `hasura_client.py` | `query` | One GraphQL request helper (admin secret). |
+| | `get_simulation` | Read a plan's latest simulation + simulated activities. |
+| | `insert_activity` | Write one activity directive into a plan. |
+| `across_data.py` | `get_telescopes` | ACROSS telescopes + instruments (UUIDs). |
+| | `get_plans`, `get_activity_types` | PlanDev plans / a plan's activity types. |
+| | `get_nearby_observations` | ACROSS cone search (`GET /observation/`). |
+| | `resolve_object` | Name → RA/Dec (`GET /tools/resolve-object/`). |
+| | `get_visibility_windows` | When an instrument can see a target. |
+| `across_sdk.py` | `build_bandpass` | bandpassType + min/max → ACROSS Bandpass. |
+| | `_resolve_instrument` | Instrument name → ACROSS UUID. |
+| | `_observe_target`, `create_observation` | One `ObserveTarget` activity → one ACROSS observation. |
+| | `build_observations`, `create_schedule` | Activities → a `ScheduleCreate`. |
+| | `observation_to_activity` | Inverse: one ACROSS observation → one `ObserveTarget`. |
+| `external_events.py` | `get_broker_events` | ACROSS multi-messenger alerts (`GET /broker-event/`). |
+| | `get_observation_events` | Other observatories' observations as events. |
+| | `sample_events` | Labelled fallback when ACROSS is unreachable. |
+| | `_gateway_token` | Mint a gateway token. |
+| | `_build_source` | Assemble the external-source document (header + events). |
+| | `_upload_types`, `_upload_source` | Write event types / source to the gateway. |
+| | `_plan_window`, `_link_to_plan` | Plan time range / link group to plan. |
+| | `sync_alerts` | Orchestrates the overlay (fetch → upload → link). |
+| `app.py` | `index`, `import_observations`, `visibility`, `alerts` | The four UI pages. |
+| | `extension_sync_alerts` | JSON endpoint for the PlanDev UI extension button. |
 
-### Prerequisites
+## The pipelines
 
-- Python 3.9+
-- `tkinter` (usually bundled with Python; on Linux, install via your package manager)
-- The `across-client` SDK for ACROSS API integration
+**Export** (`/`): `get_simulation` reads the plan's simulated `ObserveTarget`s →
+`create_schedule` maps each to an ACROSS observation (type, instrument UUID,
+pointing, bandpass, exposure) → `Client.schedule.post` → ACROSS.
 
-### Setup
+**Import** (`/import`): `get_nearby_observations` cone-searches ACROSS →
+`observation_to_activity` maps each → `insert_activity` writes it into the plan.
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/remy-rabideau/PASS.git
-   cd PASS
-   ```
+**Alerts overlay** (`/alerts` or the extension): `sync_alerts` pulls ACROSS
+events (broker alerts first, else real observations), uploads them as external
+events through the gateway, and links their derivation group to the plan, so
+they appear on the timeline.
 
-2. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+**Visibility** (`/visibility`): `resolve_object` → `get_visibility_windows` +
+`get_nearby_observations` for context.
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+## The activity
 
-4. **Configure environment variables**
-   Copy `.env.template` to `.env` and fill in your credentials:
-   ```bash
-   cp .env.template .env
-   ```
+Both directions use a single PlanDev activity, **`ObserveTarget`**, with an
+`observationType` argument (`imaging | timing | spectroscopy | slew`). Its
+arguments and their ACROSS mapping are the contract in
+[`OBSERVE_TARGET_CONTRACT.md`](OBSERVE_TARGET_CONTRACT.md). The mission model JAR
+(project `observatory-model`) defines exactly this activity.
 
-   Required variables:
-   - `HASURA_URL` – GraphQL endpoint for simulation data
-   - `HASURA_ADMIN_SECRET` – Hasura admin authentication token
-   - `ACROSS_CLIENT_ID` – ACROSS API client identifier
-   - `ACROSS_CLIENT_SECRET` – ACROSS API client secret
+## Setup
 
-## Usage
-
-### Running the Application
-
-```bash
-python main.py
+```sh
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+cp .env.example .env   # then edit
 ```
 
-The UI will launch with the following workflow:
-
-1. **Select Telescope** – Choose from available observatories (loads automatically)
-2. **Select Instrument** – Pick an instrument attached to the selected telescope
-3. **Select Plan** – Choose an observation plan from PlanDev (filtered by telescope + instrument)
-4. **Configure Observations**
-   - **Fidelity** – Set observation fidelity (LOW, MEDIUM, HIGH)
-   - **Status** – Set observation status (PLANNED, COMMITTED, APPROVED)
-   - **Activity Types** – Filter which activity types to include (e.g., exclude slews, calibrations)
-5. **Send to ACROSS** – Submit the schedule; the UI displays the new ACROSS schedule ID on success
-
-### Example Workflow
-
-```
-Load telescopes… ✓
-Select "Chandra" telescope
-  → Instruments populate: "ACIS-I", "ACIS-S", "HRC", "LETG"
-Select "ACIS-I" instrument
-  → Load plans…
-Select "NGC-1234-Survey" plan
-  → Load activity types: "ImageTarget", "TimeTarget", "Slew"
-Uncheck "Slew" to exclude telescope slew activities
-Click "Send to ACROSS"
-  → Success! ACROSS Schedule ID: 12345abc
+```ini
+HASURA_URL=http://localhost:8080/v1/graphql
+HASURA_ADMIN_SECRET=aerie
+GATEWAY_URL=http://localhost:9000
+ACROSS_CLIENT_ID=        # only for the live export POST
+ACROSS_CLIENT_SECRET=
 ```
 
-## Key Features
+## Run
 
-### Extensible Mapper System
-
-Add support for new PlanDev activity types by registering a mapper in `across_sdk.py`:
-
-```python
-@maps("MyNewActivityType")
-def _my_new_activity_type(activity: dict, simulation_dataset_id: int) -> dict:
-    """Convert PlanDev activity to ACROSS observation fields."""
-    data = activity["attributes"]["arguments"]
-    
-    # Get telescope pointing and instrument config at observation start time
-    fields = across_specific_fields(data, simulation_dataset_id, activity["start_offset"])
-    
-    fields.update(
-        type=ObservationType.IMAGING,
-        # ... additional ACROSS fields
-    )
-    
-    return fields
+```sh
+.venv/bin/python -m pytest -q     # tests
+.venv/bin/python app.py           # UI -> http://localhost:5000
 ```
 
-### Dynamic Resource Queries
+Everything can also be driven by API: the gateway uploads model JARs and external
+sources, and Hasura handles plans/activities — `sync_alerts` already does the
+overlay end to end this way.
 
-PASS queries Hasura resources to fetch real-time telescope pointing and instrument configurations:
+## Status
 
-- **Telescope Pointing** – RA/Dec coordinates are queried at each observation's start time (with 1 microsecond offset to ensure slew completion)
-- **Instrument Configuration** – Bandpass parameters (type, unit, min, max), time resolution, and EM resolution power are fetched from simulation resources instead of hardcoded values
-- **Offset Conversion** – PlanDev offset strings (e.g., "1 day 06:10:15.963036") are converted to GraphQL interval format for precise resource queries
-
-### Activity Type Discovery
-
-Unmapped activity types are collected during processing and logged to stdout, enabling incremental mapper implementation:
-
-```
-No mapper for these activity types (used placeholders): ["NewActivityType", "UnknownOp"]
-```
-
-## Data Flow
-
-### Schedule Creation Process
-
-1. User selects telescope/instrument in UI
-2. PlanDev API returns available plans
-3. User selects plan; Hasura GraphQL fetches simulation data
-4. Simulated activities are iterated and converted to ACROSS Observations via mapper registry
-5. ScheduleCreate object is assembled with:
-   - Telescope UUID
-   - Fidelity and status from UI selections
-   - Filtered observations based on activity type selection
-6. ACROSS Client posts schedule; returns new schedule ID
-
-### Data Transformation
-
-```
-PlanDev Activity
-    ↓
-_base_fields() → safe defaults (ObservationStatus.PLANNED, ObservationType.TIMING, etc.)
-    ↓
-across_specific_fields() → queries Hasura for:
-    - Telescope pointing (RA/Dec) at observation start time
-    - Instrument configuration (bandpass type/unit/range, time resolution, EM resolution)
-    ↓
-Activity-type mapper (e.g., _imaging(), _timing()) → enriched fields
-    ↓
-ObservationCreate (ACROSS SDK model)
-    ↓
-ScheduleCreate (collection of observations)
-    ↓
-Client.schedule.post() → ACROSS REST API
-    ↓
-ACROSS Schedule ID (returned to user)
-```
-
-## Environment Configuration
-
-Create a `.env` file (or use `.env.template` as a template):
-
-```env
-# Hasura GraphQL endpoint for simulation data
-HASURA_URL=https://hasura.example.com/graphql
-
-# Hasura admin token for API authentication
-HASURA_ADMIN_SECRET=your-admin-secret
-
-# ACROSS API credentials
-ACROSS_CLIENT_ID=your-client-id
-ACROSS_CLIENT_SECRET=your-client-secret
-```
-
-## Dependencies
-
-- **across-client** – Official ACROSS SDK for schedule submission and data models
-- **tkinter** – Python's standard GUI toolkit (included with Python; install separately on Linux)
-- **python-dotenv** – Environment variable management
-- **requests** (via across-client) – HTTP client for REST API calls
-
-## Development
-
-### Adding a New Activity Type Mapper
-
-1. Inspect the PlanDev activity structure (printed to stdout on first encounter)
-2. Create a mapper function in `across_sdk.py`:
-   ```python
-   @maps("MyActivityType")
-   def _my_activity(activity: dict, simulation_dataset_id: int) -> dict:
-       data = activity["attributes"]["arguments"]
-       
-       # Get dynamic telescope pointing and instrument config
-       fields = across_specific_fields(data, simulation_dataset_id, activity["start_offset"])
-       
-       fields.update(
-           type=ObservationType.IMAGING,
-           # ... more fields
-       )
-       
-       return fields
-   ```
-3. Test by running PASS and selecting a plan containing the activity type
-4. Verify the observation appears correctly in ACROSS
-
-### Debugging
-
-- Check UI status messages for API errors
-- Review stdout for unmapped activity type warnings
-- Enable verbose logging by modifying `schedule_ui.py` or `hasura_client.py`
-- Test individual components (e.g., `across_data.get_telescopes()`) in a Python REPL
-
-## License
-
-MIT License – See LICENSE file for details.
-
-## Troubleshooting
-
-### "Failed to load telescopes"
-- Verify `HASURA_URL` and `HASURA_ADMIN_SECRET` are correct
-- Check network connectivity to Hasura endpoint
-- Ensure authentication token is valid and has admin privileges
-
-### "This telescope has no instruments"
-- The selected telescope may not have instruments registered in PlanDev
-- Contact your observatory administrator to verify telescope/instrument configuration
-
-### "Send failed" on ACROSS submission
-- Verify `ACROSS_CLIENT_ID` and `ACROSS_CLIENT_SECRET` are correct
-- Ensure the ACROSS API endpoint is accessible
-- Check for activity type mapper warnings in the console
-
-## Contributing
-
-Contributions are welcome! To extend PASS:
-
-1. Add mapper functions for new PlanDev activity types
-2. Enhance error handling and user feedback
-3. Improve the UI layout or add advanced features
-4. Optimize API calls or data fetching
-
----
-
-**Questions or Issues?** Open an issue on GitHub or contact the development team.
+- **Import, alerts overlay, visibility** — fully working (no ACROSS credentials
+  needed; they use ACROSS reads + PlanDev writes).
+- **Export** — fully mapped and verified; the final `POST /schedule` is the only
+  step that needs ACROSS credentials. Add `ACROSS_CLIENT_ID`/`SECRET` once you
+  have access and export completes end to end.
