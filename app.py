@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from flask import Flask, render_template, request
 
 from across.client import Client
@@ -5,16 +7,14 @@ from across.sdk.v1.api_client import ApiClient
 from across.sdk.v1.models.schedule_status import ScheduleStatus
 from across.sdk.v1.models.schedule_fidelity import ScheduleFidelity
 
-from across_sdk import create_schedule, observation_to_activity
-from across_data import (
+from mappers import create_schedule, observation_to_activity
+from across_client import (
     get_telescopes,
-    get_plans,
-    get_activity_types,
     get_nearby_observations,
     resolve_object,
     get_visibility_windows,
 )
-from hasura_client import get_simulation, insert_activity
+from plandev import get_simulation, insert_activity, get_plans, get_activity_types
 from config import ACROSS_CLIENT_ID, ACROSS_CLIENT_SECRET
 
 app = Flask(__name__)
@@ -24,10 +24,12 @@ STATUSES = [e.value for e in ScheduleStatus]
 
 
 def _find(items: list[dict], name: str) -> dict | None:
+    """Find a dict in a list by its `name` field, or None."""
     return next((i for i in items if i["name"] == name), None)
 
 
 def _send(plan, telescope, instrument, fidelity, status, allowed_types) -> str:
+    """Build the schedule from the plan's simulation and POST it to ACROSS."""
     simulation = get_simulation(plan["id"])
     instruments_by_name = {i["name"]: i["id"] for i in telescope.get("instruments", [])}
     schedule = create_schedule(
@@ -50,6 +52,7 @@ def _send(plan, telescope, instrument, fidelity, status, allowed_types) -> str:
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """Export page: pick telescope/instrument/plan and send the schedule to ACROSS."""
     form = request.form
     telescope_name = form.get("telescope", "")
     instrument_name = form.get("instrument", "")
@@ -113,10 +116,12 @@ def index():
 
 @app.route("/visibility", methods=["GET", "POST"])
 def visibility():
+    """Visibility page: resolve a target and show its observable windows."""
     form = request.form
     object_name = form.get("object_name", "")
-    begin = form.get("begin", "2026-07-01T00:00:00")
-    end = form.get("end", "2026-07-02T00:00:00")
+    _now = datetime.now()
+    begin = form.get("begin", _now.strftime("%Y-%m-%dT%H:%M:%S"))
+    end = form.get("end", (_now + timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S"))
     instrument_name = form.get("instrument", "")
 
     message = None
@@ -155,11 +160,14 @@ def visibility():
 
 @app.route("/import", methods=["GET", "POST"])
 def import_observations():
+    """Import page: pull nearby ACROSS observations into a plan as activities."""
     form = request.form
     plan_name = form.get("plan", "")
-    ra = form.get("ra", "")
-    dec = form.get("dec", "")
+    ra = form.get("ra", "183.8")        # pre-filled demo region (Virgo / lowdust)
+    dec = form.get("dec", "14.7")
     radius = form.get("radius", "5")
+    begin = form.get("begin", "")
+    end = form.get("end", "")
 
     message = None
     error = None
@@ -169,8 +177,17 @@ def import_observations():
     try:
         plans = get_plans()
         plan = _find(plans, plan_name)
-        if ra and dec:
-            observations = get_nearby_observations(float(ra), float(dec), float(radius))
+        # default the date window to the selected plan's simulation window, so the
+        # search only returns observations that fit on its timeline
+        if plan and (not begin or not end):
+            sim = get_simulation(plan["id"])
+            begin = begin or sim["simulation_start_time"]
+            end = end or sim["simulation_end_time"]
+        if ra and dec and plan:
+            observations = get_nearby_observations(
+                float(ra), float(dec), float(radius),
+                begin=begin or None, end=end or None,
+            )
     except Exception as e:
         error = f"Could not load data: {e}"
 
@@ -195,7 +212,8 @@ def import_observations():
         "import.html",
         plans=[p["name"] for p in plans],
         observations=observations,
-        selected={"plan": plan_name, "ra": ra, "dec": dec, "radius": radius},
+        selected={"plan": plan_name, "ra": ra, "dec": dec, "radius": radius,
+                  "begin": begin, "end": end},
         message=message,
         error=error,
     )

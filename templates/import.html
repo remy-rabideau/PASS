@@ -35,7 +35,7 @@
 
   <form method="post">
     <label for="plan">Plan to import into</label>
-    <select name="plan" id="plan">
+    <select name="plan" id="plan" onchange="this.form.submit()">
       <option value="">Select…</option>
       {% for name in plans %}
         <option value="{{ name }}" {{ 'selected' if name == selected.plan }}>{{ name }}</option>
@@ -46,6 +46,11 @@
       <div><label for="ra">RA</label><input name="ra" id="ra" value="{{ selected.ra }}"></div>
       <div><label for="dec">Dec</label><input name="dec" id="dec" value="{{ selected.dec }}"></div>
       <div><label for="radius">Radius (deg)</label><input name="radius" id="radius" value="{{ selected.radius }}"></div>
+    </div>
+
+    <div class="row">
+      <div><label for="begin">Date begin</label><input name="begin" id="begin" value="{{ selected.begin }}"></div>
+      <div><label for="end">Date end</label><input name="end" id="end" value="{{ selected.end }}"></div>
     </div>
 
     <div class="actions">

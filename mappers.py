@@ -37,13 +37,15 @@ def build_bandpass(args: dict) -> Bandpass:
 
 
 def _resolve_instrument(args: dict, default_uuid: str, instruments_by_name: dict) -> str:
+    """Resolve the activity's instrument name to an ACROSS UUID, else the UI default."""
     name = args.get("instrument")
     if name and instruments_by_name:
         return instruments_by_name.get(name, default_uuid)
     return default_uuid
 
 
-def _observe_target(activity: dict, instrument_uuid: str) -> ObservationCreate:
+def _activity_to_observation(activity: dict, instrument_uuid: str) -> ObservationCreate:
+    """Map one ObserveTarget activity to an ACROSS observation."""
     args = activity["attributes"]["arguments"]
     otype = (args.get("observationType") or "timing").lower()
 
@@ -79,10 +81,11 @@ def create_observation(
     default_instrument_uuid: str,
     instruments_by_name: dict,
 ) -> ObservationCreate:
+    """Resolve the instrument, then map the activity to an ACROSS observation."""
     instrument_uuid = _resolve_instrument(
         activity["attributes"]["arguments"], default_instrument_uuid, instruments_by_name
     )
-    return _observe_target(activity, instrument_uuid)
+    return _activity_to_observation(activity, instrument_uuid)
 
 
 def build_observations(
@@ -90,7 +93,7 @@ def build_observations(
     default_instrument_uuid: str,
     instruments_by_name: dict,
 ) -> list:
-    # only ObserveTarget activities become observations
+    """Map the plan's ObserveTarget activities to ACROSS observations (others skipped)."""
     return [
         create_observation(a, default_instrument_uuid, instruments_by_name)
         for a in activities
@@ -106,6 +109,7 @@ def create_schedule(
     allowed_activity_types: list[str],
     instruments_by_name: dict | None = None,
 ) -> ScheduleCreate:
+    """Build an ACROSS schedule from a plan's simulated activities."""
     activities = sim["simulation_datasets"][0]["simulated_activities"]
 
     if allowed_activity_types:

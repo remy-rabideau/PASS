@@ -41,15 +41,15 @@ PlanDev runs in Docker.
 | Module | Function | Role in the pipeline |
 |--------|----------|----------------------|
 | `config.py` | — | Loads `.env` (Hasura, gateway, ACROSS creds). |
-| `hasura_client.py` | `query` | One GraphQL request helper (admin secret). |
+| `plandev.py` | `query` | One GraphQL request helper (admin secret). |
 | | `get_simulation` | Read a plan's latest simulation + simulated activities. |
 | | `insert_activity` | Write one activity directive into a plan. |
-| `across_data.py` | `get_telescopes` | ACROSS telescopes + instruments (UUIDs). |
 | | `get_plans`, `get_activity_types` | PlanDev plans / a plan's activity types. |
+| `across_client.py` | `get_telescopes` | ACROSS telescopes + instruments (UUIDs). |
 | | `get_nearby_observations` | ACROSS cone search (`GET /observation/`). |
 | | `resolve_object` | Name → RA/Dec (`GET /tools/resolve-object/`). |
 | | `get_visibility_windows` | When an instrument can see a target. |
-| `across_sdk.py` | `build_bandpass` | bandpassType + min/max → ACROSS Bandpass. |
+| `mappers.py` | `build_bandpass` | bandpassType + min/max → ACROSS Bandpass. |
 | | `_resolve_instrument` | Instrument name → ACROSS UUID. |
 | | `_observe_target`, `create_observation` | One `ObserveTarget` activity → one ACROSS observation. |
 | | `build_observations`, `create_schedule` | Activities → a `ScheduleCreate`. |
