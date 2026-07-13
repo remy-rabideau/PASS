@@ -10,6 +10,8 @@ from across.sdk.v1.api_client_wrapper import ApiClientWrapper
 from across.sdk.v1.api.telescope_api import TelescopeApi
 from across.sdk.v1.api.instrument_api import InstrumentApi
 
+HOST = "http://localhost:8000/v1"
+
 # ---------------------------------------------------------------------------
 # ACROSS: telescopes
 # ---------------------------------------------------------------------------
@@ -24,7 +26,7 @@ def get_telescopes() -> list[dict]:
         ]
     """
 
-    config = Configuration(host="https://api.across.sciencecloud.nasa.gov/v1")
+    config = Configuration(host=HOST)
     client = ApiClientWrapper.get_client(configuration=config)
     api = TelescopeApi(client)
     telescopes = api.get_telescopes()
@@ -35,7 +37,7 @@ def get_telescopes() -> list[dict]:
 def short_name_to_uuid(short_name: str) -> str:
     """Return the ACROSS instrument UUID for the given short name."""
 
-    config = Configuration(host="https://api.across.sciencecloud.nasa.gov/v1")
+    config = Configuration(host=HOST)
     client = ApiClientWrapper.get_client(configuration=config)
     api = InstrumentApi(client)
     instruments = api.get_instruments()
