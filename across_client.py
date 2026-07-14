@@ -3,8 +3,9 @@ import requests
 from across.sdk.v1.configuration import Configuration
 from across.sdk.v1.api_client_wrapper import ApiClientWrapper
 from across.sdk.v1.api.telescope_api import TelescopeApi
+from config import HOST
 
-ACROSS_API = "https://api.across.sciencecloud.nasa.gov/v1"
+ACROSS_API = HOST
 
 
 def get_nearby_observations(ra: float, dec: float, radius: float, limit: int = 20,
@@ -80,7 +81,7 @@ def get_visibility_windows(
 
 def get_telescopes() -> list[dict]:
     """ACROSS telescopes, each with its instruments (name + UUID)."""
-    config = Configuration(host="https://api.across.sciencecloud.nasa.gov/v1")
+    config = Configuration(host=ACROSS_API)
     client = ApiClientWrapper.get_client(configuration=config)
     api = TelescopeApi(client)
     telescopes = api.get_telescopes()
