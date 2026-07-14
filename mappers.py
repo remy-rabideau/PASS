@@ -94,11 +94,15 @@ def build_observations(
     instruments_by_name: dict,
 ) -> list:
     """Map the plan's ObserveTarget activities to ACROSS observations (others skipped)."""
-    return [
-        create_observation(a, default_instrument_uuid, instruments_by_name)
-        for a in activities
-        if a["activity_type_name"] == "ObserveTarget"
-    ]
+    observations = []
+    for a in activities:
+        try:
+            obs = create_observation(a, default_instrument_uuid, instruments_by_name)
+            observations.append(obs)
+        except (KeyError, TypeError) as e:
+            # Skip activities that don't have the required observation fields
+            print(f"Skipping activity {a.get('id')} ({a.get('activity_type_name')}): {e}")
+    return observations
 
 
 def create_schedule(

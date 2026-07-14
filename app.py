@@ -32,6 +32,12 @@ def _send(plan, telescope, instrument, fidelity, status, allowed_types) -> str:
     """Build the schedule from the plan's simulation and POST it to ACROSS."""
     simulation = get_simulation(plan["id"])
     instruments_by_name = {i["name"]: i["id"] for i in telescope.get("instruments", [])}
+    
+    print(f"DEBUG: allowed_types = {allowed_types}")
+    all_activities = simulation["simulation_datasets"][0]["simulated_activities"]
+    print(f"DEBUG: Total activities in plan: {len(all_activities)}")
+    print(f"DEBUG: Activity types: {set(a['activity_type_name'] for a in all_activities)}")
+    
     schedule = create_schedule(
         simulation,
         plan["id"],
